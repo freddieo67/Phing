@@ -154,16 +154,16 @@ export default function BingoGridModal({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Text style={styles.closeBtnText}>✕</Text>
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
+          <View style={styles.headerLeft}>
             <Text style={styles.title} numberOfLines={1}>{game.title}</Text>
             <Text style={styles.gridBadge}>
               {game.grid_size} ({game.rows} rader × 3 per rad)
             </Text>
           </View>
-          <View style={{ width: 36 }} />
+          <TouchableOpacity style={styles.mapToggleBtn} onPress={onClose} activeOpacity={0.8}>
+            <FontAwesome6 name="map-location-dot" size={15} color="#0F4C5C" />
+            <Text style={styles.mapToggleBtnText}>Visa Karta</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Progress & Info */}
@@ -241,6 +241,14 @@ export default function BingoGridModal({
           </View>
         </ScrollView>
 
+        {/* Flytande snabbknapp till kartan */}
+        <View style={styles.floatingFooter} pointerEvents="box-none">
+          <TouchableOpacity style={styles.bottomSwitchBtn} onPress={onClose} activeOpacity={0.85}>
+            <FontAwesome6 name="map" size={16} color="#FFFFFF" />
+            <Text style={styles.bottomSwitchBtnText}>Växla till kartan</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Förhandsvisning av bild */}
         {previewPhoto && (
           <Modal transparent visible animationType="fade" onRequestClose={() => setPreviewPhoto(null)}>
@@ -275,21 +283,52 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#E5E7EB',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerLeft: {
+    flex: 1,
+    marginRight: 10,
   },
-  closeBtnText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#374151',
-  },
-  headerCenter: {
+  mapToggleBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#E8F4F6',
+    borderWidth: 1,
+    borderColor: '#BEE3E8',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  mapToggleBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F4C5C',
+  },
+  floatingFooter: {
+    position: 'absolute',
+    bottom: 24,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  bottomSwitchBtn: {
+    backgroundColor: '#0F4C5C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
+  },
+  bottomSwitchBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   title: {
     fontSize: 18,
