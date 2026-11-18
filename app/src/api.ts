@@ -66,6 +66,16 @@ export interface ActiveShare {
 }
 
 export type GridSize = '3x3' | '3x4' | '3x5';
+export type GameMode = 'classic' | 'block';
+
+export interface GameTeam {
+  id: number;
+  game_id: number;
+  name: string;
+  color: string;
+  score: number;
+  has_won: boolean;
+}
 
 export interface Game {
   id: number;
@@ -76,12 +86,18 @@ export interface Game {
   rows: number;
   cols: number;
   duration_minutes: number;
+  is_team_game: boolean;
+  game_mode: GameMode;
   status: 'lobby' | 'active' | 'finished' | 'cancelled';
   starts_at: string;
   expires_at: string;
   winner_id?: number | null;
+  winner_team_id?: number | null;
   created_at: string;
   participant_status?: 'invited' | 'accepted' | 'declined';
+  team_id?: number | null;
+  team_name?: string;
+  team_color?: string;
   score?: number;
   has_bingo?: boolean;
 }
@@ -95,6 +111,9 @@ export interface GameItem {
 export interface GameParticipant {
   user_id: number;
   display_name: string;
+  team_id?: number | null;
+  team_name?: string;
+  team_color?: string;
   status: 'invited' | 'accepted' | 'declined';
   score: number;
   has_bingo: boolean;
@@ -104,6 +123,9 @@ export interface GamePhing {
   id: number;
   user_id: number;
   user_name: string;
+  team_id?: number | null;
+  team_name?: string;
+  team_color?: string;
   tile_index: number;
   photo_thumb: string;
   photo_data?: string;
@@ -117,6 +139,7 @@ export interface GamePhing {
 
 export interface GameDetails {
   game: Game;
+  teams: GameTeam[];
   items: GameItem[];
   participants: GameParticipant[];
   phings: GamePhing[];
@@ -184,6 +207,8 @@ export const api = {
     title: string;
     grid_size: GridSize;
     duration_minutes: number;
+    is_team_game?: boolean;
+    game_mode?: GameMode;
     starts_at?: string;
     items?: string[];
     participant_ids?: number[];
@@ -207,7 +232,7 @@ export const api = {
     accuracy_meters?: number | null;
     photo_thumb: string;
     photo_data?: string;
-  }) => apiPost<{ phing: GamePhing; score: number; hasBingo: boolean }>(`/games/${gameId}/phings`, body),
+  }) => apiPost<{ phing: GamePhing; userScore: number; hasWon: boolean; winningTeamName?: string }>('/games/' + gameId + '/phings', body),
 
   voteGamePhing: (gameId: number, phingId: number, voterId: number, vote: 'approve' | 'reject') =>
     apiPost<{ ok: boolean; approved_count: number; rejected_count: number; status: string }>(

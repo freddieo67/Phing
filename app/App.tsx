@@ -16,7 +16,7 @@ import MeetingConfigModal from './src/components/MeetingConfigModal';
 import BingoGridModal from './src/components/BingoGridModal';
 import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
-import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing } from './src/api';
+import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam } from './src/api';
 import { ApiError } from './src/config';
 import { clearUser, loadUser } from './src/session';
 import { getCurrentCoords, getSavedLocation, saveLocationCache, withTimeout } from './src/location';
@@ -48,6 +48,7 @@ export default function App() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game' | null>(null);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [gameTeams, setGameTeams] = useState<GameTeam[]>([]);
   const [gameItems, setGameItems] = useState<GameItem[]>([]);
   const [gamePhings, setGamePhings] = useState<GamePhing[]>([]);
   const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
@@ -127,11 +128,15 @@ export default function App() {
 
       setGamePhings(prev => [res.phing, ...prev.filter(p => !(p.user_id === user.id && p.tile_index === tileIndex))]);
 
-      if (res.hasBingo) {
-        Alert.alert('🏆 BINGO!', 'Grattis! Du har klarat alla rutor på din bingobricka!');
+      if (res.hasWon) {
+        Alert.alert(
+          '🏆 THE WINNER TAKES IT ALL!',
+          `${res.winningTeamName || 'Ditt lag'} har tagit en ointaglig ledning och vinner matchen!`
+        );
       } else {
-        Alert.alert('🎯 Godkänd!', `Ruta ${tileIndex + 1} avklarad och sparad som Phing på kartan!`);
+        Alert.alert('🎯 Godkänd!', `Ruta ${tileIndex + 1} erövrad och sparad som Phing på kartan!`);
       }
+      if (refreshRef.current) refreshRef.current();
     } catch (e) {
       console.warn('Fel vid inskickning av phing:', e);
       Alert.alert(i18n.t('error'), 'Kunde inte skicka in fotot.');
@@ -452,6 +457,7 @@ export default function App() {
           const details = await api.getGameDetails(current.id);
           if (!active) return;
           setActiveGame(details.game);
+          setGameTeams(details.teams || []);
           setGameItems(details.items);
           setGamePhings(details.phings);
         } else if (activeGame && activeGame.status !== 'finished') {
@@ -1583,8 +1589,10 @@ export default function App() {
       <BingoGridModal
         visible={bingoGridVisible}
         game={activeGame}
+        teams={gameTeams}
         items={gameItems}
-        myPhings={myCompletedPhings}
+        allPhings={gamePhings}
+        currentUserId={user?.id || 1}
         onClose={() => setBingoGridVisible(false)}
         onSubmitTile={handleTileSubmit}
         onViewPhing={() => setGameReviewVisible(true)}

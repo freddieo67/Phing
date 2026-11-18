@@ -15,14 +15,16 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Game, GameItem, GamePhing } from '../api';
+import { Game, GameItem, GamePhing, GameTeam } from '../api';
 import i18n from '../i18n';
 
 interface BingoGridModalProps {
   visible: boolean;
   game: Game | null;
+  teams?: GameTeam[];
   items: GameItem[];
-  myPhings: Record<number, GamePhing>;
+  allPhings?: GamePhing[];
+  currentUserId: number;
   onClose: () => void;
   onSubmitTile: (tileIndex: number, photoThumb: string, photoData: string) => Promise<void>;
   onViewPhing?: (phing: GamePhing) => void;
@@ -37,21 +39,31 @@ const TILE_WIDTH = Math.floor((SCREEN_WIDTH - GRID_PADDING * 2 - TILE_GAP * 2) /
 export default function BingoGridModal({
   visible,
   game,
+  teams,
   items,
-  myPhings,
+  allPhings = [],
+  currentUserId,
   onClose,
   onSubmitTile,
   onViewPhing,
 }: BingoGridModalProps) {
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string } | null>(null);
+  const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string; owner?: string } | null>(null);
   const lastLaunchRef = useRef(0);
 
   if (!game) return null;
 
   const totalTiles = (game.rows || 3) * (game.cols || 3);
-  const completedCount = Object.keys(myPhings).length;
+  const isBlockMode = game.game_mode === 'block';
+  const isTeamGame = Boolean(game.is_team_game);
+
+  // Hitta phings tagna av mitt lag / mig
+  const myTeamPhings = allPhings.filter(p =>
+    p.status === 'approved' &&
+    (isTeamGame ? (p.team_id && p.team_id === game.team_id) : p.user_id === currentUserId)
+  );
+  const completedCount = myTeamPhings.length;
   const isAllCompleted = completedCount >= totalTiles;
 
   const canLaunch = () => {
@@ -102,18 +114,53 @@ export default function BingoGridModal({
       return;
     }
 
-    const existing = myPhings[index];
-    if (existing) {
+    // Kolla om mitt lag eller jag redan tagit rutan
+    const myClaimedPhing = allPhings.find(p =>
+      p.tile_index === index && p.status === 'approved' &&
+      (isTeamGame ? (p.team_id && p.team_id === game.team_id) : p.user_id === currentUserId)
+    );
+    if (myClaimedPhing) {
       if (onViewPhing) {
-        onViewPhing(existing);
+        onViewPhing(myClaimedPhing);
       } else {
         const item = items.find(it => it.tile_index === index);
         setPreviewPhoto({
-          uri: existing.photo_thumb,
+          uri: myClaimedPhing.photo_thumb,
           label: item?.label || `Mål ${index + 1}`,
+          owner: myClaimedPhing.user_name,
         });
       }
       return;
+    }
+
+    // I BLOCK-LÄGE: Kolla om motståndaren har tagit rutan
+    if (isBlockMode) {
+      const opponentClaimedPhing = allPhings.find(p =>
+        p.tile_index === index && p.status === 'approved' &&
+        (isTeamGame ? (p.team_id && p.team_id !== game.team_id) : p.user_id !== currentUserId)
+      );
+      if (opponentClaimedPhing) {
+        const owner = opponentClaimedPhing.team_name || opponentClaimedPhing.user_name;
+        Alert.alert(
+          '🔒 Rutan är blockerad!',
+          `Denna ruta har redan erövrats av ${owner}. I detta läge vinner det lag som tar flest rutor (the winner takes it all)!`,
+          [
+            {
+              text: 'Visa bild',
+              onPress: () => {
+                const item = items.find(it => it.tile_index === index);
+                setPreviewPhoto({
+                  uri: opponentClaimedPhing.photo_thumb,
+                  label: `Erövrad av ${owner}: ${item?.label || `Mål ${index + 1}`}`,
+                  owner,
+                });
+              },
+            },
+            { text: 'OK', style: 'cancel' },
+          ]
+        );
+        return;
+      }
     }
 
     if (!canLaunch()) return;
@@ -168,20 +215,44 @@ export default function BingoGridModal({
 
         {/* Progress & Info */}
         <View style={styles.progressContainer}>
-          <View style={styles.progressRow}>
-            <Text style={styles.progressText}>
-              Hittade: <Text style={styles.progressBold}>{completedCount} / {totalTiles}</Text>
-            </Text>
-            {isAllCompleted ? (
-              <View style={styles.bingoBadge}>
-                <Text style={styles.bingoBadgeText}>🏆 BINGO!</Text>
-              </View>
-            ) : (
-              <Text style={styles.statusText}>
-                {game.status === 'active' ? '🟢 Tävling pågår' : (game.status === 'lobby' ? '⏳ Väntar på start' : 'Avslutad')}
+          {isTeamGame && teams && teams.length > 0 ? (
+            <View style={styles.teamScoreboard}>
+              {teams.map(t => {
+                const isMyTeam = t.id === game.team_id;
+                return (
+                  <View key={t.id} style={[styles.teamBadge, { borderColor: t.color }, isMyTeam && styles.myTeamBadge]}>
+                    <View style={[styles.teamDot, { backgroundColor: t.color }]} />
+                    <Text style={[styles.teamName, isMyTeam && { fontWeight: '700' }]}>
+                      {t.name}{isMyTeam ? ' (Du)' : ''}:
+                    </Text>
+                    <Text style={[styles.teamScore, { color: t.color }]}>{t.score}</Text>
+                  </View>
+                );
+              })}
+              {isBlockMode && (
+                <View style={styles.modeBadge}>
+                  <Text style={styles.modeBadgeText}>
+                    {Math.max(0, totalTiles - allPhings.filter(p => p.status === 'approved').length)} kvar
+                  </Text>
+                </View>
+              )}
+            </View>
+          ) : (
+            <View style={styles.progressRow}>
+              <Text style={styles.progressText}>
+                Hittade: <Text style={styles.progressBold}>{completedCount} / {totalTiles}</Text>
               </Text>
-            )}
-          </View>
+              {isAllCompleted ? (
+                <View style={styles.bingoBadge}>
+                  <Text style={styles.bingoBadgeText}>🏆 BINGO!</Text>
+                </View>
+              ) : (
+                <Text style={styles.statusText}>
+                  {game.status === 'active' ? '🟢 Tävling pågår' : (game.status === 'lobby' ? '⏳ Väntar på start' : 'Avslutad')}
+                </Text>
+              )}
+            </View>
+          )}
 
           <View style={styles.progressBarBackground}>
             <View style={[styles.progressBarFill, { width: `${Math.min(100, (completedCount / totalTiles) * 100)}%` }]} />
@@ -192,49 +263,82 @@ export default function BingoGridModal({
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.grid}>
             {Array.from({ length: totalTiles }).map((_, index) => {
-              const phing = myPhings[index];
+              const myClaimedPhing = allPhings.find(p =>
+                p.tile_index === index && p.status === 'approved' &&
+                (isTeamGame ? (p.team_id && p.team_id === game.team_id) : p.user_id === currentUserId)
+              );
+              const opponentClaimedPhing = isBlockMode
+                ? allPhings.find(p =>
+                    p.tile_index === index && p.status === 'approved' &&
+                    (isTeamGame ? (p.team_id && p.team_id !== game.team_id) : p.user_id !== currentUserId)
+                  )
+                : null;
+
               const item = items.find(it => it.tile_index === index);
               const label = item?.label || `Mål ${index + 1}`;
               const isProcessingThis = capturing && activeTileIndex === index;
 
+              if (myClaimedPhing) {
+                return (
+                  <TouchableOpacity
+                    key={`tile-${index}`}
+                    style={[styles.tile, styles.tileCompleted]}
+                    activeOpacity={0.8}
+                    onPress={() => handleTilePress(index)}
+                  >
+                    <Image source={{ uri: myClaimedPhing.photo_thumb }} style={styles.tileImage} />
+                    <View style={styles.tileCheckmarkBadge}>
+                      <FontAwesome6 name="check" size={14} color="#FFFFFF" />
+                    </View>
+                    <View style={styles.tileOverlay}>
+                      <Text style={styles.tileCompletedLabel} numberOfLines={1}>{label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
+              if (opponentClaimedPhing) {
+                const ownerColor = opponentClaimedPhing.team_color || '#EF4444';
+                const ownerName = opponentClaimedPhing.team_name || opponentClaimedPhing.user_name;
+                return (
+                  <TouchableOpacity
+                    key={`tile-${index}`}
+                    style={[styles.tile, styles.tileBlocked, { borderColor: ownerColor }]}
+                    activeOpacity={0.8}
+                    onPress={() => handleTilePress(index)}
+                  >
+                    <Image source={{ uri: opponentClaimedPhing.photo_thumb }} style={[styles.tileImage, { opacity: 0.65 }]} />
+                    <View style={[styles.tileLockBadge, { backgroundColor: ownerColor }]}>
+                      <FontAwesome6 name="lock" size={12} color="#FFFFFF" />
+                    </View>
+                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.75)' }]}>
+                      <Text style={styles.tileBlockedLabel} numberOfLines={1}>
+                        🔒 {ownerName}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
               return (
                 <TouchableOpacity
                   key={`tile-${index}`}
-                  style={[
-                    styles.tile,
-                    phing ? styles.tileCompleted : styles.tileEmpty,
-                  ]}
+                  style={[styles.tile, styles.tileEmpty]}
                   activeOpacity={0.8}
                   onPress={() => handleTilePress(index)}
                   disabled={capturing}
                 >
-                  {phing ? (
-                    <>
-                      <Image source={{ uri: phing.photo_thumb }} style={styles.tileImage} />
-                      <View style={styles.tileCheckmarkBadge}>
-                        <FontAwesome6 name="check" size={14} color="#FFFFFF" />
-                      </View>
-                      <View style={styles.tileOverlay}>
-                        <Text style={styles.tileCompletedLabel} numberOfLines={1}>
-                          {label}
-                        </Text>
-                      </View>
-                    </>
-                  ) : (
-                    <View style={styles.tileInner}>
-                      <View style={styles.tileNumberBadge}>
-                        <Text style={styles.tileNumberText}>{index + 1}</Text>
-                      </View>
-                      {isProcessingThis ? (
-                        <ActivityIndicator size="small" color="#0F4C5C" />
-                      ) : (
-                        <FontAwesome6 name="camera" size={24} color="#0F4C5C" style={{ opacity: 0.6 }} />
-                      )}
-                      <Text style={styles.tileLabel} numberOfLines={2}>
-                        {label}
-                      </Text>
+                  <View style={styles.tileInner}>
+                    <View style={styles.tileNumberBadge}>
+                      <Text style={styles.tileNumberText}>{index + 1}</Text>
                     </View>
-                  )}
+                    {isProcessingThis ? (
+                      <ActivityIndicator size="small" color="#0F4C5C" />
+                    ) : (
+                      <FontAwesome6 name="camera" size={24} color="#0F4C5C" style={{ opacity: 0.6 }} />
+                    )}
+                    <Text style={styles.tileLabel} numberOfLines={2}>{label}</Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -416,6 +520,73 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
     borderWidth: 2,
     borderColor: '#10B981',
+  },
+  tileBlocked: {
+    backgroundColor: '#1F2937',
+    borderWidth: 2,
+  },
+  teamScoreboard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+    flexWrap: 'wrap',
+  },
+  teamBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+  },
+  myTeamBadge: {
+    backgroundColor: '#F3F4F6',
+  },
+  teamDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  teamName: {
+    fontSize: 12,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  teamScore: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  modeBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  modeBadgeText: {
+    fontSize: 11,
+    color: '#92400E',
+    fontWeight: '700',
+  },
+  tileLockBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  tileBlockedLabel: {
+    color: '#FFFFFF',
+    fontSize: 9.5,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   tileInner: {
     flex: 1,

@@ -86,15 +86,29 @@ CREATE TABLE IF NOT EXISTS public.games (
   rows             INTEGER NOT NULL DEFAULT 3,         -- 3, 4 eller 5
   cols             INTEGER NOT NULL DEFAULT 3,         -- alltid 3 rutor per rad
   duration_minutes INTEGER NOT NULL DEFAULT 30,
+  is_team_game     BOOLEAN NOT NULL DEFAULT FALSE,     -- lagspel eller individuellt
+  game_mode        VARCHAR(20) NOT NULL DEFAULT 'classic', -- 'classic' (fyll egen bricka) eller 'block' (erövra/blockera rutor)
   status           VARCHAR(20) NOT NULL DEFAULT 'lobby', -- 'lobby', 'active', 'finished', 'cancelled'
   starts_at        TIMESTAMPTZ,
   expires_at       TIMESTAMPTZ,
   winner_id        INTEGER REFERENCES public.users(id) ON DELETE SET NULL,
+  winner_team_id   INTEGER,
   created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_games_status ON public.games(status);
 CREATE INDEX IF NOT EXISTS idx_games_host_id ON public.games(host_id);
+
+CREATE TABLE IF NOT EXISTS public.game_teams (
+  id         SERIAL PRIMARY KEY,
+  game_id    INTEGER NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
+  name       VARCHAR(50) NOT NULL,
+  color      VARCHAR(20) NOT NULL DEFAULT '#EF4444',
+  score      INTEGER NOT NULL DEFAULT 0,
+  has_won    BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_game_teams_game ON public.game_teams(game_id);
 
 CREATE TABLE IF NOT EXISTS public.game_items (
   id         SERIAL PRIMARY KEY,
@@ -108,6 +122,7 @@ CREATE TABLE IF NOT EXISTS public.game_items (
 CREATE TABLE IF NOT EXISTS public.game_participants (
   game_id   INTEGER NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
   user_id   INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  team_id   INTEGER REFERENCES public.game_teams(id) ON DELETE SET NULL,
   status    VARCHAR(20) NOT NULL DEFAULT 'invited', -- 'invited', 'accepted', 'declined'
   score     INTEGER NOT NULL DEFAULT 0,
   has_bingo BOOLEAN NOT NULL DEFAULT FALSE,
@@ -116,11 +131,13 @@ CREATE TABLE IF NOT EXISTS public.game_participants (
 );
 
 CREATE INDEX IF NOT EXISTS idx_game_participants_user ON public.game_participants(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_game_participants_team ON public.game_participants(team_id);
 
 CREATE TABLE IF NOT EXISTS public.game_phings (
   id              SERIAL PRIMARY KEY,
   game_id         INTEGER NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
   user_id         INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  team_id         INTEGER REFERENCES public.game_teams(id) ON DELETE SET NULL,
   tile_index      INTEGER NOT NULL,
   location        GEOMETRY(Point, 4326) NOT NULL,
   accuracy_meters DOUBLE PRECISION,
@@ -129,12 +146,13 @@ CREATE TABLE IF NOT EXISTS public.game_phings (
   status          VARCHAR(20) NOT NULL DEFAULT 'approved', -- 'approved', 'rejected'
   approved_count  INTEGER NOT NULL DEFAULT 0,
   rejected_count  INTEGER NOT NULL DEFAULT 0,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (game_id, user_id, tile_index)
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_game_phings_game ON public.game_phings(game_id);
 CREATE INDEX IF NOT EXISTS idx_game_phings_user ON public.game_phings(user_id);
+CREATE INDEX IF NOT EXISTS idx_game_phings_team ON public.game_phings(team_id);
+CREATE INDEX IF NOT EXISTS idx_game_phings_tile ON public.game_phings(game_id, tile_index);
 
 CREATE TABLE IF NOT EXISTS public.game_votes (
   phing_id   INTEGER NOT NULL REFERENCES public.game_phings(id) ON DELETE CASCADE,

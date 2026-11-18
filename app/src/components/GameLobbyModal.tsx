@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { FontAwesome6 } from '@expo/vector-icons';
-import { api, Game, GridSize } from '../api';
+import { api, Game, GridSize, GameMode } from '../api';
 import { AppContact } from './ContactsModal';
 import i18n from '../i18n';
 
@@ -46,6 +46,8 @@ export default function GameLobbyModal({
   const [title, setTitle] = useState('Phing Fotojakt');
   const [selectedGrid, setSelectedGrid] = useState<GridSize>('3x3');
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
+  const [isTeamGame, setIsTeamGame] = useState(true);
+  const [gameMode, setGameMode] = useState<GameMode>('block');
   const [creating, setCreating] = useState(false);
 
   const handleCreate = async () => {
@@ -64,6 +66,8 @@ export default function GameLobbyModal({
         title: title.trim(),
         grid_size: selectedGrid,
         duration_minutes: selectedDuration,
+        is_team_game: isTeamGame,
+        game_mode: gameMode,
         items,
         participant_ids: invitedContacts.map(c => c.userId),
       });
@@ -99,6 +103,64 @@ export default function GameLobbyModal({
             placeholder="T.ex. AW-jakten eller Stadssafari"
             maxLength={40}
           />
+
+          {/* Speltyp: Solo vs Lagspel */}
+          <Text style={styles.sectionLabel}>Speltyp</Text>
+          <View style={styles.segmentedRow}>
+            <TouchableOpacity
+              style={[styles.segmentBtn, !isTeamGame && styles.segmentBtnActive]}
+              onPress={() => setIsTeamGame(false)}
+            >
+              <FontAwesome6 name="user" size={14} color={!isTeamGame ? '#FFFFFF' : '#374151'} />
+              <Text style={[styles.segmentBtnText, !isTeamGame && styles.segmentBtnTextActive]}>
+                Solo (Alla mot alla)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.segmentBtn, isTeamGame && styles.segmentBtnActive]}
+              onPress={() => setIsTeamGame(true)}
+            >
+              <FontAwesome6 name="users" size={14} color={isTeamGame ? '#FFFFFF' : '#374151'} />
+              <Text style={[styles.segmentBtnText, isTeamGame && styles.segmentBtnTextActive]}>
+                Lagspel (Röd vs Blå)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Regler / Spelläge */}
+          <Text style={styles.sectionLabel}>Regler för brickan</Text>
+          <View style={styles.rulesContainer}>
+            <TouchableOpacity
+              style={[styles.ruleCard, gameMode === 'classic' && styles.ruleCardActive]}
+              onPress={() => setGameMode('classic')}
+            >
+              <View style={styles.ruleCardHeader}>
+                <FontAwesome6 name="table-cells" size={15} color={gameMode === 'classic' ? '#0F4C5C' : '#6B7280'} />
+                <Text style={[styles.ruleCardTitle, gameMode === 'classic' && styles.ruleCardTitleActive]}>
+                  Klassisk
+                </Text>
+              </View>
+              <Text style={styles.ruleCardDesc}>
+                Alla lag/spelare har sin egen bricka och försöker få full bricka först.
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.ruleCard, gameMode === 'block' && styles.ruleCardActive]}
+              onPress={() => setGameMode('block')}
+            >
+              <View style={styles.ruleCardHeader}>
+                <FontAwesome6 name="lock" size={15} color={gameMode === 'block' ? '#0F4C5C' : '#6B7280'} />
+                <Text style={[styles.ruleCardTitle, gameMode === 'block' && styles.ruleCardTitleActive]}>
+                  Revirkamp (Blockering) 🔥
+                </Text>
+              </View>
+              <Text style={styles.ruleCardDesc}>
+                När ett lag tar en ruta blockeras den för alla andra! "Winner takes it all" när omöjligt att komma ikapp!
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* Format (3 per rad) */}
           <Text style={styles.sectionLabel}>Välj bingobricka (3 per rad)</Text>
@@ -244,6 +306,67 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
+  },
+  segmentedRow: {
+    flexDirection: 'row',
+    backgroundColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 3,
+    gap: 4,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  segmentBtnActive: {
+    backgroundColor: '#0F4C5C',
+  },
+  segmentBtnText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  segmentBtnTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  rulesContainer: {
+    gap: 8,
+  },
+  ruleCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 12,
+  },
+  ruleCardActive: {
+    borderColor: '#0F4C5C',
+    backgroundColor: '#E8F4F6',
+  },
+  ruleCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  ruleCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  ruleCardTitleActive: {
+    color: '#0F4C5C',
+  },
+  ruleCardDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    lineHeight: 16,
   },
   gridOptionsContainer: {
     flexDirection: 'row',

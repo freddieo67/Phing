@@ -9,7 +9,7 @@ function parseId(value: unknown): number | null {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-// Skapa ett nytt spel / utmaning
+// Skapa ett nytt spel / utmaning (stödjer individuellt och lagspel, classic och block)
 gamesRouter.post('/', async (req, res) => {
   const hostId = parseId(req.body.host_id);
   const title = String(req.body.title || 'Fotojakt').trim();
@@ -18,7 +18,10 @@ gamesRouter.post('/', async (req, res) => {
   const cols = 3;
   const totalTiles = rows * cols;
   const durationMinutes = Number(req.body.duration_minutes) || 30;
+  const isTeamGame = Boolean(req.body.is_team_game);
+  const gameMode = req.body.game_mode === 'block' ? 'block' : 'classic';
   const startsAt = req.body.starts_at ? new Date(req.body.starts_at) : new Date();
+
   const participantIds: number[] = Array.isArray(req.body.participant_ids)
     ? req.body.participant_ids.map(parseId).filter((id): id is number => id !== null && id !== hostId)
     : [];
@@ -39,12 +42,28 @@ gamesRouter.post('/', async (req, res) => {
     const expiresAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
 
     const gameRes = await client.query(
-      `INSERT INTO public.games (host_id, title, grid_size, rows, cols, duration_minutes, status, starts_at, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, host_id, title, grid_size, rows, cols, duration_minutes, status, starts_at, expires_at, created_at`,
-      [hostId, title, gridSize, rows, cols, durationMinutes, status, startsAt, expiresAt]
+      `INSERT INTO public.games (host_id, title, grid_size, rows, cols, duration_minutes, is_team_game, game_mode, status, starts_at, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING *`,
+      [hostId, title, gridSize, rows, cols, durationMinutes, isTeamGame, gameMode, status, startsAt, expiresAt]
     );
     const game = gameRes.rows[0];
+
+    // Skapa lag om det är lagspel
+    let team1Id: number | null = null;
+    let team2Id: number | null = null;
+    if (isTeamGame) {
+      const t1Res = await client.query(
+        `INSERT INTO public.game_teams (game_id, name, color) VALUES ($1, 'Lag Röd', '#EF4444') RETURNING id`,
+        [game.id]
+      );
+      const t2Res = await client.query(
+        `INSERT INTO public.game_teams (game_id, name, color) VALUES ($1, 'Lag Blå', '#3B82F6') RETURNING id`,
+        [game.id]
+      );
+      team1Id = t1Res.rows[0].id;
+      team2Id = t2Res.rows[0].id;
+    }
 
     // Lägg till mål / brickans rutor
     for (let i = 0; i < totalTiles; i++) {
@@ -56,20 +75,23 @@ gamesRouter.post('/', async (req, res) => {
       );
     }
 
-    // Lägg till värden som accepterad deltagare
+    // Lägg till värden som accepterad deltagare (i Lag Röd om lagspel)
     await client.query(
-      `INSERT INTO public.game_participants (game_id, user_id, status)
-       VALUES ($1, $2, 'accepted')`,
-      [game.id, hostId]
+      `INSERT INTO public.game_participants (game_id, user_id, team_id, status)
+       VALUES ($1, $2, $3, 'accepted')`,
+      [game.id, hostId, team1Id]
     );
 
-    // Bjud in vänner
-    for (const pid of participantIds) {
+    // Bjud in vänner (fördela jämnt mellan lagen om lagspel)
+    for (let i = 0; i < participantIds.length; i++) {
+      const pid = participantIds[i];
+      if (pid === undefined) continue;
+      const assignedTeamId = isTeamGame ? (i % 2 === 0 ? team2Id : team1Id) : null;
       await client.query(
-        `INSERT INTO public.game_participants (game_id, user_id, status)
-         VALUES ($1, $2, 'invited')
+        `INSERT INTO public.game_participants (game_id, user_id, team_id, status)
+         VALUES ($1, $2, $3, 'invited')
          ON CONFLICT (game_id, user_id) DO NOTHING`,
-        [game.id, pid]
+        [game.id, pid, assignedTeamId]
       );
     }
 
@@ -77,11 +99,12 @@ gamesRouter.post('/', async (req, res) => {
 
     // Skicka push-notis till alla inbjudna
     const hostName = await getDisplayName(hostId);
+    const modeDesc = gameMode === 'block' ? 'Revirkamp (Blockerande rutor!)' : 'Klassisk';
     for (const pid of participantIds) {
       sendPush(
         pid,
         '🎮 Ny utmaning i Phing!',
-        `${hostName} bjuder in dig till "${title}" (${gridSize}, ${durationMinutes} min)!`,
+        `${hostName} bjuder in dig till "${title}" (${isTeamGame ? 'Lagspel' : 'Solo'} · ${modeDesc})!`,
         { type: 'game_invite', game_id: game.id }
       ).catch(() => {});
     }
@@ -105,11 +128,13 @@ gamesRouter.get('/user/:userId', async (req, res) => {
 
   try {
     const gamesRes = await pool.query(
-      `SELECT g.*, gp.status AS participant_status, gp.score, gp.has_bingo,
+      `SELECT g.*, gp.status AS participant_status, gp.score, gp.has_bingo, gp.team_id,
+              gt.name AS team_name, gt.color AS team_color,
               u.display_name AS host_name,
               (SELECT COUNT(*) FROM public.game_participants WHERE game_id = g.id) AS total_players
        FROM public.games g
        JOIN public.game_participants gp ON gp.game_id = g.id AND gp.user_id = $1
+       LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
        JOIN public.users u ON u.id = g.host_id
        WHERE g.status IN ('lobby', 'active') OR g.expires_at >= NOW() - INTERVAL '1 day'
        ORDER BY g.created_at DESC`,
@@ -123,7 +148,7 @@ gamesRouter.get('/user/:userId', async (req, res) => {
   }
 });
 
-// Hämta detaljerad info om ett spel (inkl. brickans rutor, deltagare och inskickade phings)
+// Hämta detaljerad info om ett spel (inkl. brickans rutor, deltagare, lag och inskickade phings)
 gamesRouter.get('/:id', async (req, res) => {
   const gameId = parseId(req.params.id);
   if (!gameId) {
@@ -156,30 +181,40 @@ gamesRouter.get('/:id', async (req, res) => {
       await pool.query(`UPDATE public.games SET status = 'finished' WHERE id = $1`, [gameId]);
     }
 
+    // Hämta lag om lagspel
+    const teamsRes = await pool.query(
+      `SELECT * FROM public.game_teams WHERE game_id = $1 ORDER BY id ASC`,
+      [gameId]
+    );
+
     // Hämta brickans rutor (items)
     const itemsRes = await pool.query(
       `SELECT tile_index, label, emoji FROM public.game_items WHERE game_id = $1 ORDER BY tile_index ASC`,
       [gameId]
     );
 
-    // Hämta deltagare och deras poäng
+    // Hämta deltagare och deras lag / poäng
     const participantsRes = await pool.query(
-      `SELECT gp.user_id, gp.status, gp.score, gp.has_bingo, u.display_name
+      `SELECT gp.user_id, gp.team_id, gp.status, gp.score, gp.has_bingo, u.display_name,
+              gt.name AS team_name, gt.color AS team_color
        FROM public.game_participants gp
        JOIN public.users u ON u.id = gp.user_id
+       LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
        WHERE gp.game_id = $1
        ORDER BY gp.score DESC, gp.joined_at ASC`,
       [gameId]
     );
 
-    // Hämta inskickade phings för spelet
+    // Hämta inskickade phings för spelet (inkluderar lagfärg om lagspel)
     const phingsRes = await pool.query(
-      `SELECT gp.id, gp.user_id, gp.tile_index, gp.photo_thumb, gp.status,
+      `SELECT gp.id, gp.user_id, gp.team_id, gp.tile_index, gp.photo_thumb, gp.status,
               gp.approved_count, gp.rejected_count, gp.created_at,
               ST_Y(gp.location) AS latitude, ST_X(gp.location) AS longitude,
-              u.display_name AS user_name
+              u.display_name AS user_name,
+              gt.name AS team_name, gt.color AS team_color
        FROM public.game_phings gp
        JOIN public.users u ON u.id = gp.user_id
+       LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
        WHERE gp.game_id = $1
        ORDER BY gp.created_at DESC`,
       [gameId]
@@ -187,6 +222,7 @@ gamesRouter.get('/:id', async (req, res) => {
 
     res.json({
       game,
+      teams: teamsRes.rows,
       items: itemsRes.rows,
       participants: participantsRes.rows,
       phings: phingsRes.rows
@@ -268,7 +304,7 @@ gamesRouter.post('/:id/start', async (req, res) => {
   }
 });
 
-// Skicka in ett foto för en ruta på bingobrickan (Phing submission)
+// Skicka in ett foto för en ruta på bingobrickan (Phing submission med lag- och blockeringslogik)
 gamesRouter.post('/:id/phings', async (req, res) => {
   const gameId = parseId(req.params.id);
   const userId = parseId(req.body.user_id);
@@ -299,43 +335,156 @@ gamesRouter.post('/:id/phings', async (req, res) => {
     const game = gameRes.rows[0];
     if (game.status !== 'active') {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Spelet är inte aktivt' });
+      return res.status(400).json({ error: 'Spelet är inte längre aktivt' });
+    }
+
+    // Hämta spelarens lag (om lagspel)
+    const partRes = await client.query(
+      `SELECT team_id FROM public.game_participants WHERE game_id = $1 AND user_id = $2`,
+      [gameId, userId]
+    );
+    const userTeamId = partRes.rows[0]?.team_id || null;
+
+    // BLOCK-LÄGE: Kolla om rutan redan är erövrad av ett annat lag/annan spelare!
+    if (game.game_mode === 'block') {
+      const existingRes = await client.query(
+        `SELECT gp.*, gt.name AS team_name, u.display_name AS user_name
+         FROM public.game_phings gp
+         LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
+         JOIN public.users u ON u.id = gp.user_id
+         WHERE gp.game_id = $1 AND gp.tile_index = $2 AND gp.status = 'approved'`,
+        [gameId, tileIndex]
+      );
+      if (existingRes.rowCount && existingRes.rowCount > 0) {
+        const existing = existingRes.rows[0];
+        const isMyTeam = game.is_team_game && existing.team_id === userTeamId;
+        const isMe = !game.is_team_game && existing.user_id === userId;
+        if (!isMyTeam && !isMe) {
+          await client.query('ROLLBACK');
+          const ownerLabel = existing.team_name || existing.user_name;
+          return res.status(409).json({
+            error: `Rutan är redan erövrad och blockerad av ${ownerLabel}!`,
+            blocked: true,
+          });
+        }
+      }
     }
 
     // Spara phing
     const phingRes = await client.query(
-      `INSERT INTO public.game_phings (game_id, user_id, tile_index, location, accuracy_meters, photo_thumb, photo_data)
-       VALUES ($1, $2, $3, ST_SetSRID(ST_MakePoint($4, $5), 4326), $6, $7, $8)
-       ON CONFLICT (game_id, user_id, tile_index) DO UPDATE
-       SET location = EXCLUDED.location, accuracy_meters = EXCLUDED.accuracy_meters,
-           photo_thumb = EXCLUDED.photo_thumb, photo_data = EXCLUDED.photo_data, created_at = NOW()
-       RETURNING id, game_id, user_id, tile_index, photo_thumb, approved_count, rejected_count, created_at,
+      `INSERT INTO public.game_phings (game_id, user_id, team_id, tile_index, location, accuracy_meters, photo_thumb, photo_data)
+       VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9)
+       RETURNING id, game_id, user_id, team_id, tile_index, photo_thumb, approved_count, rejected_count, created_at,
                  ST_Y(location) AS latitude, ST_X(location) AS longitude`,
-      [gameId, userId, tileIndex, lng, lat, accuracy, photoThumb, photoData]
+      [gameId, userId, userTeamId, tileIndex, lng, lat, accuracy, photoThumb, photoData]
     );
 
-    // Uppdatera deltagarens poäng
+    // Uppdatera deltagarens personliga poäng
     const countRes = await client.query(
-      `SELECT COUNT(*) FROM public.game_phings WHERE game_id = $1 AND user_id = $2 AND status = 'approved'`,
+      `SELECT COUNT(DISTINCT tile_index) FROM public.game_phings WHERE game_id = $1 AND user_id = $2 AND status = 'approved'`,
       [gameId, userId]
     );
-    const score = parseInt(countRes.rows[0].count, 10);
+    const userScore = parseInt(countRes.rows[0].count, 10);
     const totalTiles = game.rows * game.cols;
-    const hasBingo = score >= totalTiles;
 
     await client.query(
       `UPDATE public.game_participants
-       SET score = $1, has_bingo = $2
-       WHERE game_id = $3 AND user_id = $4`,
-      [score, hasBingo, gameId, userId]
+       SET score = $1
+       WHERE game_id = $2 AND user_id = $3`,
+      [userScore, gameId, userId]
     );
 
-    // Om deltagaren fick BINGO och ingen vinnare finns än
-    if (hasBingo && !game.winner_id) {
-      await client.query(
-        `UPDATE public.games SET winner_id = $1, status = 'finished' WHERE id = $2`,
-        [userId, gameId]
+    let hasWon = false;
+    let winningTeamName = '';
+
+    // LAGSPEL: Uppdatera lagets poäng och kolla vinst
+    if (game.is_team_game && userTeamId) {
+      const teamScoreRes = await client.query(
+        `SELECT COUNT(DISTINCT tile_index) FROM public.game_phings WHERE game_id = $1 AND team_id = $2 AND status = 'approved'`,
+        [gameId, userTeamId]
       );
+      const teamScore = parseInt(teamScoreRes.rows[0].count, 10);
+      await client.query(
+        `UPDATE public.game_teams SET score = $1 WHERE id = $2`,
+        [teamScore, userTeamId]
+      );
+
+      // BLOCK-LÄGE: "Winner takes it all" - kolla om det är matematiskt omöjligt för andra att komma ikapp!
+      if (game.game_mode === 'block') {
+        const allTeamsRes = await client.query(
+          `SELECT id, name, score FROM public.game_teams WHERE game_id = $1 ORDER BY score DESC`,
+          [gameId]
+        );
+        const teams = allTeamsRes.rows;
+        const topTeam = teams[0];
+        const runnerUpTeam = teams[1] || { score: 0 };
+
+        // Räkna totalt erövrade rutor i spelet
+        const totalClaimedRes = await client.query(
+          `SELECT COUNT(DISTINCT tile_index) FROM public.game_phings WHERE game_id = $1 AND status = 'approved'`,
+          [gameId]
+        );
+        const totalClaimed = parseInt(totalClaimedRes.rows[0].count, 10);
+        const remainingTiles = totalTiles - totalClaimed;
+
+        // Om ledande laget har fler poäng än vad nästa lag kan få även om de tar ALLA kvarvarande rutor:
+        // topTeam.score > runnerUp.score + remainingTiles
+        if (topTeam && topTeam.score > (runnerUpTeam.score + remainingTiles)) {
+          hasWon = true;
+          winningTeamName = topTeam.name;
+          await client.query(
+            `UPDATE public.games SET status = 'finished', winner_team_id = $1 WHERE id = $2`,
+            [topTeam.id, gameId]
+          );
+          await client.query(
+            `UPDATE public.game_teams SET has_won = TRUE WHERE id = $1`,
+            [topTeam.id]
+          );
+        }
+      } else {
+        // Klassiskt lagspel: först till alla rutor vinner
+        if (teamScore >= totalTiles) {
+          hasWon = true;
+          const teamRes = await client.query(`SELECT name FROM public.game_teams WHERE id = $1`, [userTeamId]);
+          winningTeamName = teamRes.rows[0]?.name || 'Laget';
+          await client.query(
+            `UPDATE public.games SET status = 'finished', winner_team_id = $1 WHERE id = $2`,
+            [userTeamId, gameId]
+          );
+          await client.query(
+            `UPDATE public.game_teams SET has_won = TRUE WHERE id = $1`,
+            [userTeamId]
+          );
+        }
+      }
+    } else {
+      // INDIVIDUELLT SPEL
+      if (game.game_mode === 'block') {
+        const allPlayersRes = await client.query(
+          `SELECT user_id, score FROM public.game_participants WHERE game_id = $1 ORDER BY score DESC`,
+          [gameId]
+        );
+        const top = allPlayersRes.rows[0];
+        const runnerUp = allPlayersRes.rows[1] || { score: 0 };
+        const totalClaimedRes = await client.query(
+          `SELECT COUNT(DISTINCT tile_index) FROM public.game_phings WHERE game_id = $1 AND status = 'approved'`,
+          [gameId]
+        );
+        const remainingTiles = totalTiles - parseInt(totalClaimedRes.rows[0].count, 10);
+        if (top && top.score > (runnerUp.score + remainingTiles)) {
+          hasWon = true;
+          await client.query(
+            `UPDATE public.games SET status = 'finished', winner_id = $1 WHERE id = $2`,
+            [top.user_id, gameId]
+          );
+        }
+      } else if (userScore >= totalTiles && !game.winner_id) {
+        hasWon = true;
+        await client.query(
+          `UPDATE public.games SET winner_id = $1, status = 'finished' WHERE id = $2`,
+          [userId, gameId]
+        );
+      }
     }
 
     await client.query('COMMIT');
@@ -358,15 +507,15 @@ gamesRouter.post('/:id/phings', async (req, res) => {
     for (const player of playersRes.rows) {
       sendPush(
         player.user_id,
-        hasBingo ? '🏆 BINGO!' : '🎯 Ny Phing på kartan!',
-        hasBingo
-          ? `${userName} fick BINGO i "${game.title}"!`
-          : `${userName} fotograferade "${itemLabel}"!`,
+        hasWon ? '🏆 THE WINNER TAKES IT ALL!' : (game.game_mode === 'block' ? '🔒 Ruta erövrad!' : '🎯 Ny Phing!'),
+        hasWon
+          ? `${winningTeamName || userName} har tagit en ointaglig ledning och vinner matchen!`
+          : `${userName} erövrade "${itemLabel}"!`,
         { type: 'game_phing', game_id: gameId, phing_id: phing.id }
       ).catch(() => {});
     }
 
-    res.status(201).json({ phing, score, hasBingo });
+    res.status(201).json({ phing, userScore, hasWon, winningTeamName });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Fel vid inskickning av phing:', err);
@@ -411,7 +560,7 @@ gamesRouter.post('/:id/phings/:phingId/vote', async (req, res) => {
     const approvedCount = parseInt(votesRes.rows[0].approved_count, 10);
     const rejectedCount = parseInt(votesRes.rows[0].rejected_count, 10);
 
-    // Om majoritet protesterar (t.ex. minst 2 protester och fler än godkännanden) sätts status till rejected
+    // Om minst 2 protesterar och fler än godkännanden sätts status till rejected
     const newStatus = (rejectedCount >= 2 && rejectedCount > approvedCount) ? 'rejected' : 'approved';
 
     await client.query(
