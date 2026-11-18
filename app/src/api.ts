@@ -1,0 +1,124 @@
+import { apiGet, apiPost, apiPut } from './config';
+
+export interface User {
+  id: number;
+  phone_number: string;
+  display_name: string;
+}
+
+export interface Coords {
+  latitude: number;
+  longitude: number;
+  accuracy_meters: number | null;
+}
+
+// En position som någon har delat med mig
+export interface IncomingPosition {
+  id: number;
+  sender_id: number;
+  sender_name: string;
+  latitude: number;
+  longitude: number;
+  accuracy_meters: number | null;
+  shared_at: string;
+  expires_at: string;
+  message?: string | null;
+  icon?: string | null;
+  photo_thumb?: string | null;
+  has_photo?: boolean;
+  is_meeting_point?: boolean;
+}
+
+// Någon vill se min position
+export interface IncomingRequest {
+  id: number;
+  requester_id: number;
+  requester_name: string;
+  created_at: string;
+  expires_at: string;
+}
+
+// Jag har bett någon om deras position
+export interface OutgoingRequest {
+  id: number;
+  target_id: number;
+  target_name: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  expires_at: string;
+  responded_at: string | null;
+  reciprocated_at: string | null;
+}
+
+// Min aktiva delning till någon annan
+export interface ActiveShare {
+  id: number;
+  receiver_id: number;
+  receiver_name: string;
+  latitude?: number;
+  longitude?: number;
+  expires_at: string;
+  message?: string | null;
+  icon?: string | null;
+  photo_thumb?: string | null;
+  has_photo?: boolean;
+  is_meeting_point?: boolean;
+}
+
+export interface SharePhotoResponse {
+  id: number;
+  sender_id: number;
+  sender_name: string;
+  message?: string | null;
+  shared_at: string;
+  expires_at: string;
+  photo_data: string;
+}
+
+export interface Inbox {
+  positions: IncomingPosition[];
+  requests: IncomingRequest[];
+  outgoing: OutgoingRequest[];
+  sharing: number[];
+  active_shares?: ActiveShare[];
+}
+
+export const api = {
+  register: (phone_number: string, display_name: string) =>
+    apiPost<User>('/users', { phone_number, display_name }),
+
+  getUser: (id: number) => apiGet<User>(`/users/${id}`),
+
+  matchContacts: (phone_numbers: string[]) =>
+    apiPost<{ matches: User[] }>('/contacts/match', { phone_numbers }),
+
+  sharePosition: (body: Coords & { sender_id: number; receiver_id: number; request_id?: number | null; message?: string; duration_minutes?: number; is_background?: boolean; icon?: string; photo_thumb?: string | null; photo_data?: string | null; is_meeting_point?: boolean }) =>
+    apiPost<{ id: number; expires_at: string }>('/position/share', body),
+
+  getSharePhoto: (shareId: number) =>
+    apiGet<SharePhotoResponse>(`/position/photo/${shareId}`),
+
+  stopSharing: (sender_id: number, receiver_id?: number, is_meeting_point?: boolean) =>
+    apiPost<{ ok: boolean }>(
+      '/position/stop',
+      receiver_id != null
+        ? is_meeting_point !== undefined
+          ? { sender_id, receiver_id, is_meeting_point }
+          : { sender_id, receiver_id }
+        : { sender_id }
+    ),
+
+  requestPosition: (requester_id: number, target_id: number) =>
+    apiPost<{ id: number; status: string; expires_at: string }>('/requests', { requester_id, target_id }),
+
+  respondToRequest: (requestId: number, body: { user_id: number; accept: boolean; message?: string; duration_minutes?: number; icon?: string } & Partial<Coords>) =>
+    apiPost<{ status: string }>(`/requests/${requestId}/respond`, body),
+
+  inbox: (userId: number) => apiGet<Inbox>(`/users/${userId}/inbox`),
+
+  sendSignal: (sender_id: number, receiver_id: number, type: string, message?: string) =>
+    apiPost<{ ok: boolean }>('/signals', { sender_id, receiver_id, type, message }),
+
+  savePushToken: (userId: number, token: string | null) =>
+    apiPut<{ ok: boolean }>(`/users/${userId}/push-token`, { token }),
+};
