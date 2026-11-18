@@ -82,7 +82,9 @@ CREATE TABLE IF NOT EXISTS public.games (
   id               SERIAL PRIMARY KEY,
   host_id          INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   title            VARCHAR(100) NOT NULL,
-  grid_size        INTEGER NOT NULL DEFAULT 3, -- 3 (3x3 = 9 rutor) eller 4 (4x4 = 16 rutor)
+  grid_size        VARCHAR(10) NOT NULL DEFAULT '3x3', -- '3x3' (9 rutor), '3x4' (12 rutor), '3x5' (15 rutor)
+  rows             INTEGER NOT NULL DEFAULT 3,         -- 3, 4 eller 5
+  cols             INTEGER NOT NULL DEFAULT 3,         -- alltid 3 rutor per rad
   duration_minutes INTEGER NOT NULL DEFAULT 30,
   status           VARCHAR(20) NOT NULL DEFAULT 'lobby', -- 'lobby', 'active', 'finished', 'cancelled'
   starts_at        TIMESTAMPTZ,
