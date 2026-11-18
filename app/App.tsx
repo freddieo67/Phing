@@ -17,6 +17,7 @@ import BingoGridModal from './src/components/BingoGridModal';
 import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
 import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam, GameParticipant } from './src/api';
+import { getQueuedPhings, enqueuePhing, flushOfflineQueue, QueuedPhing } from './src/offlineQueue';
 import { ApiError } from './src/config';
 import { clearUser, loadUser } from './src/session';
 import { getCurrentCoords, getSavedLocation, saveLocationCache, withTimeout } from './src/location';
@@ -52,6 +53,7 @@ export default function App() {
   const [gameParticipants, setGameParticipants] = useState<GameParticipant[]>([]);
   const [gameItems, setGameItems] = useState<GameItem[]>([]);
   const [gamePhings, setGamePhings] = useState<GamePhing[]>([]);
+  const [queuedPhings, setQueuedPhings] = useState<QueuedPhing[]>([]);
   const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
   const [bingoGridVisible, setBingoGridVisible] = useState(false);
   const [gameReviewVisible, setGameReviewVisible] = useState(false);
@@ -99,7 +101,7 @@ export default function App() {
     return map;
   }, [gamePhings, user]);
 
-  const myCompletedCount = Object.keys(myCompletedPhings).length;
+  const myCompletedCount = Object.keys(myCompletedPhings).length + queuedPhings.length;
   const totalGameTiles = activeGame ? (activeGame.rows || 3) * (activeGame.cols || 3) : 9;
 
   const myParticipant = useMemo(
@@ -138,6 +140,46 @@ export default function App() {
     };
   }, [user, activeGame?.id, activeGame?.status, location?.coords.latitude, location?.coords.longitude, myMapIcon]);
 
+  // Ladda köade phings för det aktiva spelet
+  useEffect(() => {
+    if (activeGame) {
+      getQueuedPhings(activeGame.id).then(setQueuedPhings);
+    } else {
+      setQueuedPhings([]);
+    }
+  }, [activeGame?.id]);
+
+  // Flusha offline-kön automatiskt när nätverket är tillbaka
+  const flushQueue = useCallback(async () => {
+    if (!user || !activeGame || activeGame.status !== 'active') return;
+    try {
+      await flushOfflineQueue(
+        async (item) => {
+          return await api.submitGamePhing(item.gameId, {
+            user_id: item.userId,
+            tile_index: item.tileIndex,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            accuracy_meters: item.accuracyMeters,
+            photo_thumb: item.photoThumb,
+            photo_data: item.photoData,
+          });
+        },
+        (item, res) => {
+          setGamePhings(prev => [res.phing, ...prev.filter(p => !(p.user_id === user.id && p.tile_index === item.tileIndex))]);
+          if (res.hasWon) {
+            Alert.alert(
+              '🏆 THE WINNER TAKES IT ALL!',
+              `${res.winningTeamName || 'Ditt lag'} har tagit en ointaglig ledning och vinner matchen!`
+            );
+          }
+        }
+      );
+      const updated = await getQueuedPhings(activeGame.id);
+      setQueuedPhings(updated);
+    } catch (_) {}
+  }, [user, activeGame]);
+
   const handleTileSubmit = useCallback(async (tileIndex: number, photoThumb: string, photoData: string) => {
     if (!activeGame || !user) return;
     let coords = location?.coords;
@@ -175,10 +217,28 @@ export default function App() {
       }
       if (refreshRef.current) refreshRef.current();
     } catch (e) {
-      console.warn('Fel vid inskickning av phing:', e);
-      Alert.alert(i18n.t('error'), 'Kunde inte skicka in fotot.');
+      console.warn('Nätverksfel vid inskickning av phing, sparar till offline-kö:', e);
+      try {
+        const queued = await enqueuePhing({
+          gameId: activeGame.id,
+          userId: user.id,
+          tileIndex,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracyMeters: coords.accuracy,
+          photoThumb,
+          photoData,
+        });
+        setQueuedPhings(prev => [...prev.filter(q => q.tileIndex !== tileIndex), queued]);
+        Alert.alert(
+          'Sparad offline 📡',
+          `Ingen mottagning just nu. Bilden och din GPS-position för "${gameItems.find(it => it.tile_index === tileIndex)?.label || `Ruta ${tileIndex + 1}`}" har sparats lokalt!\n\nSå fort du får kontakt laddas den upp automatiskt till matchen.`
+        );
+      } catch (saveErr) {
+        Alert.alert(i18n.t('error'), 'Kunde inte spara fotot.');
+      }
     }
-  }, [activeGame, user, location]);
+  }, [activeGame, user, location, gameItems]);
 
   const [locale, setLocale] = useState(() => i18n.locale);
 
@@ -504,6 +564,8 @@ export default function App() {
       } catch (_) {
         // Tyst vid lokalt nätverksfel
       }
+
+      flushQueue();
     };
 
     refreshRef.current = poll;
@@ -513,6 +575,7 @@ export default function App() {
     // Pausa pollningen när appen är i bakgrunden, hämta direkt när den kommer tillbaka
     const sub = AppState.addEventListener('change', state => {
       if (state === 'active') {
+        flushQueue();
         if (!timer) {
           poll();
           timer = setInterval(poll, POLL_INTERVAL_MS);
@@ -1095,15 +1158,23 @@ export default function App() {
                       .map(p => {
                         const team = gameTeams.find(t => t.id === p.team_id);
                         const pColor = p.team_color || team?.color || '#3B82F6';
+                        const updatedMs = p.location_updated_at ? new Date(p.location_updated_at).getTime() : 0;
+                        const isStale = updatedMs > 0 && (Date.now() - updatedMs > 5 * 60 * 1000);
+                        const timeStr = updatedMs > 0 ? new Date(updatedMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                        const offlineLabel = isStale ? `Offline kl ${timeStr}` : undefined;
                         return {
                           id: `game-player-${p.user_id}`,
                           lat: p.latitude!,
                           lng: p.longitude!,
-                          title: `${p.display_name} (${p.team_name || team?.name || 'Spelare'}) · ${p.score || 0} p`,
+                          title: isStale
+                            ? `${p.display_name} (${p.team_name || team?.name || 'Spelare'}) · Offline sedan ${timeStr}`
+                            : `${p.display_name} (${p.team_name || team?.name || 'Spelare'}) · ${p.score || 0} p`,
                           label: p.display_name,
                           color: pColor,
                           emoji: p.icon || '🐷',
                           ringColor: pColor,
+                          isOffline: isStale,
+                          offlineLabel: offlineLabel,
                         };
                       })
                   : []),
@@ -1654,6 +1725,7 @@ export default function App() {
         teams={gameTeams}
         items={gameItems}
         allPhings={gamePhings}
+        queuedPhings={queuedPhings}
         currentUserId={user?.id || 1}
         onClose={() => setBingoGridVisible(false)}
         onSubmitTile={handleTileSubmit}

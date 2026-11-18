@@ -15,6 +15,8 @@ export interface MapMarkerData {
   photoThumb?: string | null;
   shareId?: number;
   isMeetingPoint?: boolean;
+  isOffline?: boolean;
+  offlineLabel?: string;
 }
 
 interface Props {
@@ -102,12 +104,16 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
             var prevEmoji = existing ? (existing._emoji || '') : '';
             var prevLabel = existing ? (existing._label || '') : '';
             var prevRing = existing ? (existing._ringColor || '') : '';
+            var prevOffline = existing ? Boolean(existing._isOffline) : false;
+            var prevOfflineLabel = existing ? (existing._offlineLabel || '') : '';
             var nextThumb = m.photoThumb || '';
             var nextEmoji = m.emoji || '';
             var nextLabel = m.label || '';
             var nextRing = m.ringColor || '';
+            var nextOffline = Boolean(m.isOffline);
+            var nextOfflineLabel = m.offlineLabel || '';
 
-            if (existing && prevThumb === nextThumb && prevEmoji === nextEmoji && prevLabel === nextLabel && prevRing === nextRing) {
+            if (existing && prevThumb === nextThumb && prevEmoji === nextEmoji && prevLabel === nextLabel && prevRing === nextRing && prevOffline === nextOffline && prevOfflineLabel === nextOfflineLabel) {
               existing.setLatLng([m.lat, m.lng]);
               if (existing.getPopup()) {
                 existing.getPopup().setContent(m.title);
@@ -142,7 +148,7 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
                 marker = L.marker([m.lat, m.lng], {
                   icon: L.divIcon({
                     className: '',
-                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:90px;overflow:visible;">' + thumbHtml + photoGroundShadow + photoBadgeHtml + '</div>',
+                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:90px;overflow:visible;' + (nextOffline ? 'opacity:0.65;filter:grayscale(30%);' : '') + '">' + thumbHtml + photoGroundShadow + photoBadgeHtml + '</div>',
                     iconSize: [90, 80],
                     iconAnchor: [45, 52],
                     popupAnchor: [0, -52],
@@ -157,9 +163,16 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
                 var isMeeting = Boolean(m.isMeetingPoint || m.emoji === '📍');
                 var badgeText = m.label || (isMeeting ? 'Mötesplats' : (!isUser && m.title ? m.title.split(':')[0].split(' ')[0] : ''));
                 var emojiNameHtml = badgeText ? '<div style="margin-top:1px;font-size:11px;font-weight:700;color:#fff;background:' + (isMeeting ? 'rgba(15,76,92,0.92)' : 'rgba(15,23,42,0.85)') + ';padding:2px 7px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.25);">' + badgeText + '</div>' : '';
-                var iconInnerHtml = m.ringColor
-                  ? '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3.5px solid ' + m.ringColor + ';background:rgba(255,255,255,0.94);box-shadow:0 0 14px ' + m.ringColor + 'bb, 0 4px 10px rgba(0,0,0,0.35);font-size:30px;line-height:1;margin-bottom:2px;">' + m.emoji + '</div>'
-                  : '<div style="font-size:46px;line-height:1.15;padding-top:4px;overflow:visible;text-align:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
+                var offlineBadgeHtml = (nextOffline && nextOfflineLabel) ? '<div style="margin-top:2px;font-size:9.5px;font-weight:700;color:#F3F4F6;background:rgba(75,85,99,0.95);padding:1px 6px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,0.3);">' + nextOfflineLabel + '</div>' : '';
+
+                var iconInnerHtml;
+                if (nextOffline) {
+                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3px dashed ' + (m.ringColor || '#9CA3AF') + ';background:rgba(243,244,246,0.92);box-shadow:none;font-size:28px;line-height:1;margin-bottom:2px;opacity:0.8;">' + m.emoji + '</div>';
+                } else if (m.ringColor) {
+                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3.5px solid ' + m.ringColor + ';background:rgba(255,255,255,0.94);box-shadow:0 0 14px ' + m.ringColor + 'bb, 0 4px 10px rgba(0,0,0,0.35);font-size:30px;line-height:1;margin-bottom:2px;">' + m.emoji + '</div>';
+                } else {
+                  iconInnerHtml = '<div style="font-size:46px;line-height:1.15;padding-top:4px;overflow:visible;text-align:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
+                }
                 var groundShadowHtml = isMeeting
                   ? '<div style="width:16px;height:5px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-4px;margin-bottom:2px;"></div>'
                   : '<div style="width:26px;height:7px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.45) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-6px;margin-bottom:2px;"></div>';
@@ -167,7 +180,7 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
                 marker = L.marker([m.lat, m.lng], {
                   icon: L.divIcon({
                     className: '',
-                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:100px;overflow:visible;">' + iconInnerHtml + groundShadowHtml + emojiNameHtml + '</div>',
+                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:100px;overflow:visible;' + (nextOffline ? 'opacity:0.75;' : '') + '">' + iconInnerHtml + groundShadowHtml + emojiNameHtml + offlineBadgeHtml + '</div>',
                     iconSize: [100, 80],
                     iconAnchor: isMeeting ? [50, 52] : [50, 46],
                     popupAnchor: isMeeting ? [0, -50] : [0, -32],
@@ -186,7 +199,7 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
                 marker = L.circleMarker([m.lat, m.lng], {
                   color: m.color,
                   fillColor: m.color,
-                  fillOpacity: 1,
+                  fillOpacity: nextOffline ? 0.4 : 1,
                   radius: isUser ? 6 : 8,
                   weight: isUser ? 2 : 0,
                 });
@@ -196,6 +209,8 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
               marker._emoji = nextEmoji;
               marker._label = nextLabel;
               marker._ringColor = nextRing;
+              marker._isOffline = nextOffline;
+              marker._offlineLabel = nextOfflineLabel;
               marker.addTo(map);
               markers[m.id] = marker;
             }

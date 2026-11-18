@@ -16,6 +16,7 @@ import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { Game, GameItem, GamePhing, GameTeam } from '../api';
+import { QueuedPhing } from '../offlineQueue';
 import i18n from '../i18n';
 
 interface BingoGridModalProps {
@@ -24,6 +25,7 @@ interface BingoGridModalProps {
   teams?: GameTeam[];
   items: GameItem[];
   allPhings?: GamePhing[];
+  queuedPhings?: QueuedPhing[];
   currentUserId: number;
   onClose: () => void;
   onSubmitTile: (tileIndex: number, photoThumb: string, photoData: string) => Promise<void>;
@@ -42,6 +44,7 @@ export default function BingoGridModal({
   teams,
   items,
   allPhings = [],
+  queuedPhings = [],
   currentUserId,
   onClose,
   onSubmitTile,
@@ -320,6 +323,28 @@ export default function BingoGridModal({
                 );
               }
 
+              const queuedPhing = queuedPhings.find(q => q.tileIndex === index);
+              if (queuedPhing) {
+                return (
+                  <TouchableOpacity
+                    key={`tile-${index}`}
+                    style={[styles.tile, styles.tileQueued]}
+                    activeOpacity={0.8}
+                    onPress={() => handleTilePress(index)}
+                  >
+                    <Image source={{ uri: queuedPhing.photoThumb }} style={[styles.tileImage, { opacity: 0.85 }]} />
+                    <View style={styles.tileQueuedBadge}>
+                      <FontAwesome6 name="tower-broadcast" size={11} color="#FFFFFF" />
+                    </View>
+                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(217, 119, 6, 0.92)' }]}>
+                      <Text style={styles.tileQueuedLabel} numberOfLines={1}>
+                        📡 Sparad offline
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }
+
               return (
                 <TouchableOpacity
                   key={`tile-${index}`}
@@ -524,6 +549,30 @@ const styles = StyleSheet.create({
   tileBlocked: {
     backgroundColor: '#1F2937',
     borderWidth: 2,
+  },
+  tileQueued: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 2,
+    borderColor: '#D97706',
+  },
+  tileQueuedBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#D97706',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  tileQueuedLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   teamScoreboard: {
     flexDirection: 'row',
