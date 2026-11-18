@@ -193,9 +193,12 @@ gamesRouter.get('/:id', async (req, res) => {
       [gameId]
     );
 
-    // Hämta deltagare och deras lag / poäng
+    // Hämta deltagare och deras lag / poäng / live-position
     const participantsRes = await pool.query(
-      `SELECT gp.user_id, gp.team_id, gp.status, gp.score, gp.has_bingo, u.display_name,
+      `SELECT gp.user_id, gp.team_id, gp.status, gp.score, gp.has_bingo, gp.icon,
+              ST_Y(gp.location) AS latitude, ST_X(gp.location) AS longitude,
+              gp.accuracy_meters, gp.location_updated_at,
+              u.display_name,
               gt.name AS team_name, gt.color AS team_color
        FROM public.game_participants gp
        JOIN public.users u ON u.id = gp.user_id
@@ -301,6 +304,36 @@ gamesRouter.post('/:id/start', async (req, res) => {
   } catch (err) {
     console.error('Fel vid start av spel:', err);
     res.status(500).json({ error: 'Kunde inte starta spel' });
+  }
+});
+
+// Uppdatera spelarens live-position i spelet (för radarn med färgade ringar)
+gamesRouter.post('/:id/location', async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const userId = parseId(req.body.user_id);
+  const lat = Number(req.body.latitude);
+  const lng = Number(req.body.longitude);
+  const accuracy = Number(req.body.accuracy_meters) || null;
+  const icon = typeof req.body.icon === 'string' ? req.body.icon : '🐷';
+
+  if (!gameId || !userId || !Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return res.status(400).json({ error: 'gameId, user_id, latitude, longitude required' });
+  }
+
+  try {
+    await pool.query(
+      `UPDATE public.game_participants
+       SET location = ST_SetSRID(ST_MakePoint($1, $2), 4326),
+           accuracy_meters = $3,
+           icon = $4,
+           location_updated_at = NOW()
+       WHERE game_id = $5 AND user_id = $6`,
+      [lng, lat, accuracy, icon, gameId, userId]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Fel vid uppdatering av spelarposition:', err);
+    res.status(500).json({ error: 'Kunde inte uppdatera position' });
   }
 });
 

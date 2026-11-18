@@ -10,6 +10,8 @@ export interface MapMarkerData {
   label?: string;
   color: string;
   emoji?: string;
+  ringColor?: string;
+  teamName?: string;
   photoThumb?: string | null;
   shareId?: number;
   isMeetingPoint?: boolean;
@@ -99,11 +101,13 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
             var prevThumb = existing ? (existing._photoThumb || '') : '';
             var prevEmoji = existing ? (existing._emoji || '') : '';
             var prevLabel = existing ? (existing._label || '') : '';
+            var prevRing = existing ? (existing._ringColor || '') : '';
             var nextThumb = m.photoThumb || '';
             var nextEmoji = m.emoji || '';
             var nextLabel = m.label || '';
+            var nextRing = m.ringColor || '';
 
-            if (existing && prevThumb === nextThumb && prevEmoji === nextEmoji && prevLabel === nextLabel) {
+            if (existing && prevThumb === nextThumb && prevEmoji === nextEmoji && prevLabel === nextLabel && prevRing === nextRing) {
               existing.setLatLng([m.lat, m.lng]);
               if (existing.getPopup()) {
                 existing.getPopup().setContent(m.title);
@@ -118,13 +122,17 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
               if (m.photoThumb) {
                 var photoBadgeText = m.label || (!isUser && m.title ? m.title.split(':')[0].split(' ')[0] : '');
                 var clipId = 'photoClip-' + String(m.id).replace(/[^a-zA-Z0-9]/g, '_');
-                var thumbHtml = '<svg width="46" height="54" viewBox="0 0 46 54" style="filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));display:block;">' +
+                var pinFill = m.ringColor || '#000';
+                var pinFilter = m.ringColor
+                  ? 'filter:drop-shadow(0 0 10px ' + m.ringColor + 'bb) drop-shadow(0 4px 6px rgba(0,0,0,0.45));display:block;'
+                  : 'filter:drop-shadow(0 4px 6px rgba(0,0,0,0.4)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));display:block;';
+                var thumbHtml = '<svg width="46" height="54" viewBox="0 0 46 54" style="' + pinFilter + '">' +
                   '<defs>' +
                     '<clipPath id="' + clipId + '">' +
                       '<circle cx="23" cy="20" r="15.5" />' +
                     '</clipPath>' +
                   '</defs>' +
-                  '<path d="M 23 52 L 8.1 30.1 A 18 18 0 1 1 37.9 30.1 Z" fill="#000" />' +
+                  '<path d="M 23 52 L 8.1 30.1 A 18 18 0 1 1 37.9 30.1 Z" fill="' + pinFill + '" />' +
                   '<circle cx="23" cy="20" r="16" fill="#fff" />' +
                   '<image href="' + m.photoThumb + '" x="7.5" y="4.5" width="31" height="31" preserveAspectRatio="xMidYMid slice" clip-path="url(#' + clipId + ')" />' +
                 '</svg>';
@@ -149,7 +157,9 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
                 var isMeeting = Boolean(m.isMeetingPoint || m.emoji === '📍');
                 var badgeText = m.label || (isMeeting ? 'Mötesplats' : (!isUser && m.title ? m.title.split(':')[0].split(' ')[0] : ''));
                 var emojiNameHtml = badgeText ? '<div style="margin-top:1px;font-size:11px;font-weight:700;color:#fff;background:' + (isMeeting ? 'rgba(15,76,92,0.92)' : 'rgba(15,23,42,0.85)') + ';padding:2px 7px;border-radius:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:96px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.25);">' + badgeText + '</div>' : '';
-                var iconInnerHtml = '<div style="font-size:46px;line-height:1.15;padding-top:4px;overflow:visible;text-align:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
+                var iconInnerHtml = m.ringColor
+                  ? '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3.5px solid ' + m.ringColor + ';background:rgba(255,255,255,0.94);box-shadow:0 0 14px ' + m.ringColor + 'bb, 0 4px 10px rgba(0,0,0,0.35);font-size:30px;line-height:1;margin-bottom:2px;">' + m.emoji + '</div>'
+                  : '<div style="font-size:46px;line-height:1.15;padding-top:4px;overflow:visible;text-align:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
                 var groundShadowHtml = isMeeting
                   ? '<div style="width:16px;height:5px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-4px;margin-bottom:2px;"></div>'
                   : '<div style="width:26px;height:7px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.45) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-6px;margin-bottom:2px;"></div>';
@@ -185,6 +195,7 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
               marker._photoThumb = nextThumb;
               marker._emoji = nextEmoji;
               marker._label = nextLabel;
+              marker._ringColor = nextRing;
               marker.addTo(map);
               markers[m.id] = marker;
             }

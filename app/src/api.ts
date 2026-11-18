@@ -117,6 +117,11 @@ export interface GameParticipant {
   status: 'invited' | 'accepted' | 'declined';
   score: number;
   has_bingo: boolean;
+  icon?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy_meters?: number | null;
+  location_updated_at?: string | null;
 }
 
 export interface GamePhing {
@@ -239,4 +244,12 @@ export const api = {
       `/games/${gameId}/phings/${phingId}/vote`,
       { voter_id: voterId, vote }
     ),
+
+  updateGameLocation: (gameId: number, body: {
+    user_id: number;
+    latitude: number;
+    longitude: number;
+    accuracy_meters?: number | null;
+    icon?: string;
+  }) => apiPost<{ ok: boolean }>(`/games/${gameId}/location`, body),
 };

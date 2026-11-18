@@ -16,7 +16,7 @@ import MeetingConfigModal from './src/components/MeetingConfigModal';
 import BingoGridModal from './src/components/BingoGridModal';
 import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
-import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam } from './src/api';
+import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam, GameParticipant } from './src/api';
 import { ApiError } from './src/config';
 import { clearUser, loadUser } from './src/session';
 import { getCurrentCoords, getSavedLocation, saveLocationCache, withTimeout } from './src/location';
@@ -49,6 +49,7 @@ export default function App() {
   const [modalMode, setModalMode] = useState<'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game' | null>(null);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
   const [gameTeams, setGameTeams] = useState<GameTeam[]>([]);
+  const [gameParticipants, setGameParticipants] = useState<GameParticipant[]>([]);
   const [gameItems, setGameItems] = useState<GameItem[]>([]);
   const [gamePhings, setGamePhings] = useState<GamePhing[]>([]);
   const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
@@ -100,6 +101,42 @@ export default function App() {
 
   const myCompletedCount = Object.keys(myCompletedPhings).length;
   const totalGameTiles = activeGame ? (activeGame.rows || 3) * (activeGame.cols || 3) : 9;
+
+  const myParticipant = useMemo(
+    () => gameParticipants.find(p => p.user_id === user?.id),
+    [gameParticipants, user]
+  );
+  const myTeam = useMemo(
+    () => gameTeams.find(t => t.id === myParticipant?.team_id),
+    [gameTeams, myParticipant]
+  );
+  const myTeamColor = myParticipant?.team_color || myTeam?.color || (activeGame ? '#10B981' : undefined);
+
+  // Live-radar under aktivt spel: synka kontinuerligt egen position till spelet
+  useEffect(() => {
+    if (!user || !activeGame || activeGame.status !== 'active' || !location) return;
+
+    let active = true;
+    const sendGamePos = async () => {
+      try {
+        if (!active) return;
+        await api.updateGameLocation(activeGame.id, {
+          user_id: user.id,
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          accuracy_meters: location.coords.accuracy ?? undefined,
+          icon: myMapIcon,
+        });
+      } catch (_) {}
+    };
+
+    sendGamePos();
+    const interval = setInterval(sendGamePos, 15000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [user, activeGame?.id, activeGame?.status, location?.coords.latitude, location?.coords.longitude, myMapIcon]);
 
   const handleTileSubmit = useCallback(async (tileIndex: number, photoThumb: string, photoData: string) => {
     if (!activeGame || !user) return;
@@ -458,6 +495,7 @@ export default function App() {
           if (!active) return;
           setActiveGame(details.game);
           setGameTeams(details.teams || []);
+          setGameParticipants(details.participants || []);
           setGameItems(details.items);
           setGamePhings(details.phings);
         } else if (activeGame && activeGame.status !== 'finished') {
@@ -1022,6 +1060,7 @@ export default function App() {
                   emoji: myActivePhotoShare ? '📷' : myMapIcon,
                   photoThumb: myActivePhotoShare?.photo_thumb ?? null,
                   shareId: myActivePhotoShare?.id,
+                  ringColor: activeGame?.status === 'active' ? myTeamColor : undefined,
                 },
                 ...activeShares
                   .filter(s => s.is_meeting_point && s.latitude != null && s.longitude != null)
@@ -1050,18 +1089,41 @@ export default function App() {
                   shareId: pos.id,
                   isMeetingPoint: Boolean(pos.is_meeting_point),
                 })),
-                ...gamePhings.map(gp => ({
-                  id: `phing-${gp.id}`,
-                  lat: gp.latitude,
-                  lng: gp.longitude,
-                  title: `${gp.user_name}: ${gameItems.find(it => it.tile_index === gp.tile_index)?.label || 'Mål'}`,
-                  label: gp.user_name,
-                  color: gp.user_id === user?.id ? '#10B981' : '#F59E0B',
-                  emoji: '📷',
-                  photoThumb: gp.photo_thumb,
-                  shareId: gp.id,
-                  isGamePhing: true,
-                }))
+                ...(activeGame?.status === 'active'
+                  ? gameParticipants
+                      .filter(p => p.user_id !== user?.id && p.latitude != null && p.longitude != null)
+                      .map(p => {
+                        const team = gameTeams.find(t => t.id === p.team_id);
+                        const pColor = p.team_color || team?.color || '#3B82F6';
+                        return {
+                          id: `game-player-${p.user_id}`,
+                          lat: p.latitude!,
+                          lng: p.longitude!,
+                          title: `${p.display_name} (${p.team_name || team?.name || 'Spelare'}) · ${p.score || 0} p`,
+                          label: p.display_name,
+                          color: pColor,
+                          emoji: p.icon || '🐷',
+                          ringColor: pColor,
+                        };
+                      })
+                  : []),
+                ...gamePhings.map(gp => {
+                  const team = gameTeams.find(t => t.id === gp.team_id);
+                  const ringColor = gp.team_color || team?.color || (gp.user_id === user?.id ? '#10B981' : '#F59E0B');
+                  return {
+                    id: `phing-${gp.id}`,
+                    lat: gp.latitude,
+                    lng: gp.longitude,
+                    title: `${gp.user_name}: ${gameItems.find(it => it.tile_index === gp.tile_index)?.label || 'Mål'}`,
+                    label: gp.user_name,
+                    color: ringColor,
+                    emoji: '📷',
+                    photoThumb: gp.photo_thumb,
+                    ringColor: ringColor,
+                    shareId: gp.id,
+                    isGamePhing: true,
+                  };
+                })
               ]}
               onMarkerPress={(marker) => {
                 if (marker.id.startsWith('phing-')) {

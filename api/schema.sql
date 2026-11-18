@@ -120,13 +120,17 @@ CREATE TABLE IF NOT EXISTS public.game_items (
 );
 
 CREATE TABLE IF NOT EXISTS public.game_participants (
-  game_id   INTEGER NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
-  user_id   INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  team_id   INTEGER REFERENCES public.game_teams(id) ON DELETE SET NULL,
-  status    VARCHAR(20) NOT NULL DEFAULT 'invited', -- 'invited', 'accepted', 'declined'
-  score     INTEGER NOT NULL DEFAULT 0,
-  has_bingo BOOLEAN NOT NULL DEFAULT FALSE,
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  game_id             INTEGER NOT NULL REFERENCES public.games(id) ON DELETE CASCADE,
+  user_id             INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  team_id             INTEGER REFERENCES public.game_teams(id) ON DELETE SET NULL,
+  status              VARCHAR(20) NOT NULL DEFAULT 'invited', -- 'invited', 'accepted', 'declined'
+  score               INTEGER NOT NULL DEFAULT 0,
+  has_bingo           BOOLEAN NOT NULL DEFAULT FALSE,
+  location            GEOMETRY(Point, 4326),
+  accuracy_meters     DOUBLE PRECISION,
+  icon                VARCHAR(16) DEFAULT '🐷',
+  location_updated_at TIMESTAMPTZ,
+  joined_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (game_id, user_id)
 );
 
@@ -161,4 +165,10 @@ CREATE TABLE IF NOT EXISTS public.game_votes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (phing_id, voter_id)
 );
+
+ALTER TABLE public.game_participants
+  ADD COLUMN IF NOT EXISTS location GEOMETRY(Point, 4326),
+  ADD COLUMN IF NOT EXISTS accuracy_meters DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS icon VARCHAR(16) DEFAULT '🐷',
+  ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMPTZ;
 
