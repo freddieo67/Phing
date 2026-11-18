@@ -3,6 +3,7 @@ import cors from 'cors';
 import type { PoolClient } from 'pg';
 import { pool } from './db';
 import { ensurePushSchema, getDisplayName, sendPush } from './push';
+import { gamesRouter } from './games';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -12,6 +13,7 @@ const REQUEST_MINUTES = 10; // hur länge en förfrågan kan besvaras
 
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
+app.use('/games', gamesRouter);
 
 // Normaliserar svenska nummer till E.164, t.ex. "070-999 80 90" -> "+46709998090"
 function normalizePhone(raw: string): string {
