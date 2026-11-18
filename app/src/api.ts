@@ -65,7 +65,7 @@ export interface ActiveShare {
   is_meeting_point?: boolean;
 }
 
-export type GridSize = '3x3' | '3x4' | '3x5';
+export type GridSize = '3x3' | '3x4' | '3x5' | '3x7';
 export type GameMode = 'classic' | 'block';
 
 export interface GameTeam {

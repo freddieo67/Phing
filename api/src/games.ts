@@ -13,8 +13,8 @@ function parseId(value: unknown): number | null {
 gamesRouter.post('/', async (req, res) => {
   const hostId = parseId(req.body.host_id);
   const title = String(req.body.title || 'Fotojakt').trim();
-  const gridSize = ['3x3', '3x4', '3x5'].includes(req.body.grid_size) ? req.body.grid_size : '3x3';
-  const rows = gridSize === '3x5' ? 5 : (gridSize === '3x4' ? 4 : 3);
+  const gridSize = ['3x3', '3x4', '3x5', '3x7'].includes(req.body.grid_size) ? req.body.grid_size : '3x3';
+  const rows = gridSize === '3x7' ? 7 : (gridSize === '3x5' ? 5 : (gridSize === '3x4' ? 4 : 3));
   const cols = 3;
   const totalTiles = rows * cols;
   const durationMinutes = Number(req.body.duration_minutes) || 30;

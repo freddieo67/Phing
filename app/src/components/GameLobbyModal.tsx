@@ -28,11 +28,11 @@ interface GameLobbyModalProps {
 
 const GRID_OPTIONS: { id: GridSize; label: string; rows: number; total: number; desc: string }[] = [
   { id: '3x3', label: '3 × 3', rows: 3, total: 9, desc: 'Snabbmatch (9 rutor)' },
-  { id: '3x4', label: '3 × 4', rows: 4, total: 12, desc: 'Mellanlång (12 rutor)' },
-  { id: '3x5', label: '3 × 5', rows: 5, total: 15, desc: 'Långmatch (15 rutor)' },
+  { id: '3x5', label: '3 × 5', rows: 5, total: 15, desc: 'Mellanmatch (15 rutor)' },
+  { id: '3x7', label: '3 × 7', rows: 7, total: 21, desc: 'Stortema / Fåglar (21 rutor)' },
 ];
 
-const DURATION_OPTIONS = [15, 30, 45, 60];
+const DURATION_OPTIONS = [30, 60, 180, 360, 1440];
 
 export default function GameLobbyModal({
   visible,
@@ -193,6 +193,7 @@ export default function GameLobbyModal({
           <View style={styles.durationsRow}>
             {DURATION_OPTIONS.map(dur => {
               const isSelected = selectedDuration === dur;
+              const durText = dur >= 1440 ? `${dur / 1440} dygn` : dur >= 60 ? `${dur / 60} tim` : `${dur} min`;
               return (
                 <TouchableOpacity
                   key={dur}
@@ -200,7 +201,7 @@ export default function GameLobbyModal({
                   onPress={() => setSelectedDuration(dur)}
                 >
                   <Text style={[styles.durationText, isSelected && styles.durationTextSelected]}>
-                    {dur} min
+                    {durText}
                   </Text>
                 </TouchableOpacity>
               );
