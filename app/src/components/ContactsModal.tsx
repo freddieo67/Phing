@@ -42,7 +42,7 @@ export interface AppContact {
 
 interface ContactsModalProps {
   visible: boolean;
-  mode: 'send' | 'request' | 'signal' | 'ping' | 'flash' | null;
+  mode: 'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game' | null;
   currentUserId: number;
   onClose: () => void;
   onSelect: (

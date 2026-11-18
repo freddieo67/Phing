@@ -65,6 +65,63 @@ export interface ActiveShare {
   is_meeting_point?: boolean;
 }
 
+export type GridSize = '3x3' | '3x4' | '3x5';
+
+export interface Game {
+  id: number;
+  host_id: number;
+  host_name?: string;
+  title: string;
+  grid_size: GridSize;
+  rows: number;
+  cols: number;
+  duration_minutes: number;
+  status: 'lobby' | 'active' | 'finished' | 'cancelled';
+  starts_at: string;
+  expires_at: string;
+  winner_id?: number | null;
+  created_at: string;
+  participant_status?: 'invited' | 'accepted' | 'declined';
+  score?: number;
+  has_bingo?: boolean;
+}
+
+export interface GameItem {
+  tile_index: number;
+  label: string;
+  emoji?: string;
+}
+
+export interface GameParticipant {
+  user_id: number;
+  display_name: string;
+  status: 'invited' | 'accepted' | 'declined';
+  score: number;
+  has_bingo: boolean;
+}
+
+export interface GamePhing {
+  id: number;
+  user_id: number;
+  user_name: string;
+  tile_index: number;
+  photo_thumb: string;
+  photo_data?: string;
+  latitude: number;
+  longitude: number;
+  status: 'approved' | 'rejected';
+  approved_count: number;
+  rejected_count: number;
+  created_at: string;
+}
+
+export interface GameDetails {
+  game: Game;
+  items: GameItem[];
+  participants: GameParticipant[];
+  phings: GamePhing[];
+}
+
 export interface SharePhotoResponse {
   id: number;
   sender_id: number;
@@ -121,4 +178,40 @@ export const api = {
 
   savePushToken: (userId: number, token: string | null) =>
     apiPut<{ ok: boolean }>(`/users/${userId}/push-token`, { token }),
+
+  createGame: (body: {
+    host_id: number;
+    title: string;
+    grid_size: GridSize;
+    duration_minutes: number;
+    starts_at?: string;
+    items?: string[];
+    participant_ids?: number[];
+  }) => apiPost<Game>('/games', body),
+
+  getUserGames: (userId: number) => apiGet<Game[]>(`/games/user/${userId}`),
+
+  getGameDetails: (gameId: number) => apiGet<GameDetails>(`/games/${gameId}`),
+
+  respondToGame: (gameId: number, userId: number, accept: boolean) =>
+    apiPost<{ ok: boolean; status: string }>(`/games/${gameId}/respond`, { user_id: userId, accept }),
+
+  startGame: (gameId: number, hostId: number) =>
+    apiPost<{ ok: boolean; starts_at: string; expires_at: string }>(`/games/${gameId}/start`, { host_id: hostId }),
+
+  submitGamePhing: (gameId: number, body: {
+    user_id: number;
+    tile_index: number;
+    latitude: number;
+    longitude: number;
+    accuracy_meters?: number | null;
+    photo_thumb: string;
+    photo_data?: string;
+  }) => apiPost<{ phing: GamePhing; score: number; hasBingo: boolean }>(`/games/${gameId}/phings`, body),
+
+  voteGamePhing: (gameId: number, phingId: number, voterId: number, vote: 'approve' | 'reject') =>
+    apiPost<{ ok: boolean; approved_count: number; rejected_count: number; status: string }>(
+      `/games/${gameId}/phings/${phingId}/vote`,
+      { voter_id: voterId, vote }
+    ),
 };

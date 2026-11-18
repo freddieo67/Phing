@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, ActivityIndicator, TouchableOpacity, Platform, Alert, AppState, ScrollView, Image, Modal, Linking, Keyboard, TextInput } from 'react-native';
 import * as Location from 'expo-location';
 import { FontAwesome6 } from '@expo/vector-icons';
@@ -13,7 +13,10 @@ import ShareBackModal from './src/components/ShareBackModal';
 import ReceivedPingModal, { ReceivedPingData } from './src/components/ReceivedPingModal';
 import IncomingRequestModal from './src/components/IncomingRequestModal';
 import MeetingConfigModal from './src/components/MeetingConfigModal';
-import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare } from './src/api';
+import BingoGridModal from './src/components/BingoGridModal';
+import GameLobbyModal from './src/components/GameLobbyModal';
+import GameReviewModal from './src/components/GameReviewModal';
+import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing } from './src/api';
 import { ApiError } from './src/config';
 import { clearUser, loadUser } from './src/session';
 import { getCurrentCoords, getSavedLocation, saveLocationCache, withTimeout } from './src/location';
@@ -43,7 +46,14 @@ export default function App() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [modalMode, setModalMode] = useState<'send' | 'request' | 'signal' | 'ping' | 'flash' | null>(null);
+  const [modalMode, setModalMode] = useState<'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game' | null>(null);
+  const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [gameItems, setGameItems] = useState<GameItem[]>([]);
+  const [gamePhings, setGamePhings] = useState<GamePhing[]>([]);
+  const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
+  const [bingoGridVisible, setBingoGridVisible] = useState(false);
+  const [gameReviewVisible, setGameReviewVisible] = useState(false);
+  const [gameInvitedContacts, setGameInvitedContacts] = useState<AppContact[]>([]);
   const [pingModalVisible, setPingModalVisible] = useState(false);
   const [pingTarget, setPingTarget] = useState<AppContact[] | null>(null);
   const [flashModalVisible, setFlashModalVisible] = useState(false);
@@ -77,6 +87,56 @@ export default function App() {
     imageUri: string;
     loadingFull: boolean;
   } | null>(null);
+
+  const myCompletedPhings = useMemo(() => {
+    const map: Record<number, GamePhing> = {};
+    if (!user) return map;
+    gamePhings.filter(p => p.user_id === user.id && p.status === 'approved').forEach(p => {
+      map[p.tile_index] = p;
+    });
+    return map;
+  }, [gamePhings, user]);
+
+  const myCompletedCount = Object.keys(myCompletedPhings).length;
+  const totalGameTiles = activeGame ? (activeGame.rows || 3) * (activeGame.cols || 3) : 9;
+
+  const handleTileSubmit = useCallback(async (tileIndex: number, photoThumb: string, photoData: string) => {
+    if (!activeGame || !user) return;
+    let coords = location?.coords;
+    if (!coords) {
+      try {
+        const fresh = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        coords = fresh.coords;
+      } catch (_) {}
+    }
+    if (!coords) {
+      Alert.alert('Plats saknas', 'Kunde inte hämta din GPS-position för fotot.');
+      return;
+    }
+
+    try {
+      const res = await api.submitGamePhing(activeGame.id, {
+        user_id: user.id,
+        tile_index: tileIndex,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy_meters: coords.accuracy,
+        photo_thumb: photoThumb,
+        photo_data: photoData,
+      });
+
+      setGamePhings(prev => [res.phing, ...prev.filter(p => !(p.user_id === user.id && p.tile_index === tileIndex))]);
+
+      if (res.hasBingo) {
+        Alert.alert('🏆 BINGO!', 'Grattis! Du har klarat alla rutor på din bingobricka!');
+      } else {
+        Alert.alert('🎯 Godkänd!', `Ruta ${tileIndex + 1} avklarad och sparad som Phing på kartan!`);
+      }
+    } catch (e) {
+      console.warn('Fel vid inskickning av phing:', e);
+      Alert.alert(i18n.t('error'), 'Kunde inte skicka in fotot.');
+    }
+  }, [activeGame, user, location]);
 
   const [locale, setLocale] = useState(() => i18n.locale);
 
@@ -383,6 +443,23 @@ export default function App() {
       } catch (error) {
         console.warn('Kunde inte hämta inkorg:', error);
       }
+
+      try {
+        const games = await api.getUserGames(user.id);
+        if (!active) return;
+        const current = games.find(g => g.status === 'active' || g.status === 'lobby');
+        if (current) {
+          const details = await api.getGameDetails(current.id);
+          if (!active) return;
+          setActiveGame(details.game);
+          setGameItems(details.items);
+          setGamePhings(details.phings);
+        } else if (activeGame && activeGame.status !== 'finished') {
+          setActiveGame(null);
+        }
+      } catch (_) {
+        // Tyst vid lokalt nätverksfel
+      }
     };
 
     refreshRef.current = poll;
@@ -534,7 +611,7 @@ export default function App() {
     setTimeout(() => mapRef.current?.focusOn(pos.latitude, pos.longitude), 0);
   }, [inbox, location]);
 
-  const openModal = (mode: 'send' | 'request' | 'signal' | 'ping' | 'flash') => {
+  const openModal = (mode: 'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game') => {
     setModalMode(mode);
     setModalVisible(true);
   };
@@ -551,6 +628,17 @@ export default function App() {
   ) => {
     setModalVisible(false);
     if (!user) return;
+
+    if (modalMode === 'game') {
+      const contacts = Array.isArray(contactOrContacts) ? contactOrContacts : [contactOrContacts];
+      setGameInvitedContacts(prev => {
+        const map = new Map(prev.map(c => [c.userId, c]));
+        contacts.forEach(c => map.set(c.userId, c));
+        return Array.from(map.values());
+      });
+      setGameLobbyVisible(true);
+      return;
+    }
 
     if (icon && icon !== '📷' && !isMeetingPoint) {
       setMyMapIcon(icon as MapIconEmoji);
@@ -955,9 +1043,25 @@ export default function App() {
                   photoThumb: pos.photo_thumb ?? null,
                   shareId: pos.id,
                   isMeetingPoint: Boolean(pos.is_meeting_point),
+                })),
+                ...gamePhings.map(gp => ({
+                  id: `phing-${gp.id}`,
+                  lat: gp.latitude,
+                  lng: gp.longitude,
+                  title: `${gp.user_name}: ${gameItems.find(it => it.tile_index === gp.tile_index)?.label || 'Mål'}`,
+                  label: gp.user_name,
+                  color: gp.user_id === user?.id ? '#10B981' : '#F59E0B',
+                  emoji: '📷',
+                  photoThumb: gp.photo_thumb,
+                  shareId: gp.id,
+                  isGamePhing: true,
                 }))
               ]}
               onMarkerPress={(marker) => {
+                if (marker.id.startsWith('phing-')) {
+                  setGameReviewVisible(true);
+                  return;
+                }
                 if (!marker.shareId) return;
                 if (marker.id === 'me' && myActivePhotoShare) {
                   openPhotoViewer(
@@ -996,6 +1100,28 @@ export default function App() {
               style={styles.logoImage}
               resizeMode="contain"
             />
+          </View>
+        )}
+
+        {/* Aktivt Spel Banner i toppen */}
+        {activeGame && (
+          <View style={styles.activeGameBanner}>
+            <TouchableOpacity style={styles.activeGameInfo} onPress={() => setBingoGridVisible(true)}>
+              <Text style={styles.activeGameTitle} numberOfLines={1}>{activeGame.title}</Text>
+              <Text style={styles.activeGameSubtitle}>
+                ⏱️ {minutesLeft(activeGame.expires_at)} min kvar · {activeGame.grid_size}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.activeGameActions}>
+              <TouchableOpacity style={styles.activeGameBtn} onPress={() => setBingoGridVisible(true)}>
+                <FontAwesome6 name="table-cells" size={13} color="#FFFFFF" />
+                <Text style={styles.activeGameBtnText}>{myCompletedCount}/{totalGameTiles}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.activeGameBtn} onPress={() => setGameReviewVisible(true)}>
+                <FontAwesome6 name="images" size={13} color="#FFFFFF" />
+                <Text style={styles.activeGameBtnText}>{gamePhings.length}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -1123,6 +1249,26 @@ export default function App() {
             activeOpacity={0.8}
           >
             <FontAwesome6 name="location-crosshairs" size={20} color="#0F4C5C" />
+          </TouchableOpacity>
+        )}
+
+        {/* Spelknapp (Tävla / Min Bricka) */}
+        {!meetingDraft && (
+          <TouchableOpacity
+            style={activeGame ? styles.gameLaunchBtnActive : styles.gameLaunchBtn}
+            onPress={() => {
+              if (activeGame) {
+                setBingoGridVisible(true);
+              } else {
+                setGameLobbyVisible(true);
+              }
+            }}
+            activeOpacity={0.8}
+          >
+            <FontAwesome6 name={activeGame ? 'table-cells' : 'gamepad'} size={16} color="#FFFFFF" />
+            <Text style={styles.gameLaunchBtnText}>
+              {activeGame ? `Bricka (${myCompletedCount}/${totalGameTiles})` : 'Tävla'}
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -1419,6 +1565,43 @@ export default function App() {
         </TouchableOpacity>
       </Modal>
 
+      <GameLobbyModal
+        visible={gameLobbyVisible}
+        currentUserId={user?.id || 1}
+        invitedContacts={gameInvitedContacts}
+        onClose={() => setGameLobbyVisible(false)}
+        onOpenContacts={() => openModal('game')}
+        onRemoveContact={(id) => setGameInvitedContacts(prev => prev.filter(c => c.userId !== id))}
+        onGameCreated={(game) => {
+          setActiveGame(game);
+          setGameLobbyVisible(false);
+          setBingoGridVisible(true);
+          if (refreshRef.current) refreshRef.current();
+        }}
+      />
+
+      <BingoGridModal
+        visible={bingoGridVisible}
+        game={activeGame}
+        items={gameItems}
+        myPhings={myCompletedPhings}
+        onClose={() => setBingoGridVisible(false)}
+        onSubmitTile={handleTileSubmit}
+        onViewPhing={() => setGameReviewVisible(true)}
+      />
+
+      <GameReviewModal
+        visible={gameReviewVisible}
+        game={activeGame}
+        items={gameItems}
+        phings={gamePhings}
+        currentUserId={user?.id || 1}
+        onClose={() => setGameReviewVisible(false)}
+        onVoteSuccess={() => {
+          if (refreshRef.current) refreshRef.current();
+        }}
+      />
+
       <StatusBar style="auto" />
     </View>
   );
@@ -1584,6 +1767,99 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 8,
     zIndex: 10,
+  },
+  gameLaunchBtn: {
+    position: 'absolute',
+    bottom: 96,
+    left: 18,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    backgroundColor: '#0F4C5C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 90,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  gameLaunchBtnActive: {
+    position: 'absolute',
+    bottom: 96,
+    left: 18,
+    height: 44,
+    paddingHorizontal: 16,
+    borderRadius: 22,
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    zIndex: 90,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 8,
+  },
+  gameLaunchBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activeGameBanner: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 52 : 36,
+    left: 16,
+    right: 16,
+    backgroundColor: '#0F4C5C',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    zIndex: 110,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  activeGameInfo: {
+    flex: 1,
+    marginRight: 10,
+  },
+  activeGameTitle: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  activeGameSubtitle: {
+    color: '#E0F2FE',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  activeGameActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  activeGameBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  activeGameBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   buttonRow: {
     position: 'absolute',
