@@ -91,7 +91,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
   const [usageMap, setUsageMap] = useState<ContactUsageMap>({});
   const [isLimitedAccess, setIsLimitedAccess] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
 
   useEffect(() => {
     if (!visible) return;

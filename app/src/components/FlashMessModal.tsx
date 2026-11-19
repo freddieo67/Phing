@@ -38,7 +38,7 @@ export default function FlashMessModal({
   const [customText, setCustomText] = useState('');
   const [loading, setLoading] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
 
   useEffect(() => {
     if (visible) {

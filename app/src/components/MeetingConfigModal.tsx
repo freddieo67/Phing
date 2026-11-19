@@ -55,7 +55,7 @@ export default function MeetingConfigModal({
   });
   const [message, setMessage] = useState<string>(initialMessage);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
 
   useEffect(() => {
     if (visible) {

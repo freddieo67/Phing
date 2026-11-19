@@ -28,8 +28,8 @@ export default function TimeWheelPicker({
   selectedMinute,
   onChange,
 }: TimeWheelPickerProps) {
-  const hourScrollRef = useRef<ScrollView>(null);
-  const minScrollRef = useRef<ScrollView>(null);
+  const hourScrollRef = useRef<any>(null);
+  const minScrollRef = useRef<any>(null);
   const isUserScrollingHour = useRef(false);
   const isUserScrollingMin = useRef(false);
 

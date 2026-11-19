@@ -33,7 +33,7 @@ export interface LeafletMapRef {
 
 const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
   ({ centerLat, centerLng, markers, onMarkerPress, onCenterChange }, ref) => {
-    const webViewRef = useRef<WebView>(null);
+    const webViewRef = useRef<any>(null);
     const readyRef = useRef(false);
     const pendingFocus = useRef<{ lat: number; lng: number; targetZoom?: number } | null>(null);
     const initialCenterRef = useRef({ lat: centerLat, lng: centerLng });
@@ -244,7 +244,7 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
           source={htmlSource}
           style={styles.map}
           scrollEnabled={false}
-          onMessage={event => {
+          onMessage={(event: any) => {
             try {
               const payload = JSON.parse(event.nativeEvent.data);
               if (payload?.type === 'markerPress' && onMarkerPress) {

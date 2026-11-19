@@ -51,7 +51,7 @@ export default function PingModal({
   const [processingPhoto, setProcessingPhoto] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(15);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<any>(null);
   const lastLaunchTimeRef = useRef(0);
 
   const canLaunch = () => {
