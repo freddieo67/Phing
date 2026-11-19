@@ -14,7 +14,7 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import { api, Game, GridSize, GameMode } from '../api';
 import { AppContact } from './ContactsModal';
-import { THEME_CATEGORIES, Difficulty, drawRandomTiles } from '../themes';
+import { THEME_CATEGORIES, drawRandomTiles } from '../themes';
 import i18n from '../i18n';
 
 interface GameLobbyModalProps {
@@ -46,7 +46,6 @@ export default function GameLobbyModal({
 }: GameLobbyModalProps) {
   const [title, setTitle] = useState('Phing Fotojakt');
   const [selectedCategory, setSelectedCategory] = useState<string>('city');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
   const [selectedGrid, setSelectedGrid] = useState<GridSize>('3x3');
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
   const [isTeamGame, setIsTeamGame] = useState(true);
@@ -62,7 +61,7 @@ export default function GameLobbyModal({
     setCreating(true);
     try {
       const selectedOption = GRID_OPTIONS.find(o => o.id === selectedGrid) || GRID_OPTIONS[0];
-      const drawnTiles = drawRandomTiles(selectedCategory, selectedDifficulty, selectedOption.total);
+      const drawnTiles = drawRandomTiles(selectedCategory, selectedOption.total);
       const items = drawnTiles.map(t => ({
         label: t.title,
         emoji: t.icon,
@@ -142,46 +141,6 @@ export default function GameLobbyModal({
               );
             })}
           </View>
-
-          {/* Svårighetsgrad */}
-          <Text style={styles.sectionLabel}>Svårighetsgrad</Text>
-          <View style={styles.difficultyRow}>
-            {(['easy', 'medium', 'hard'] as Difficulty[]).map(diffKey => {
-              const currentCat = THEME_CATEGORIES.find(c => c.id === selectedCategory) || THEME_CATEGORIES[0];
-              const diffConfig = currentCat.difficulties[diffKey];
-              const isSelected = selectedDifficulty === diffKey;
-              return (
-                <TouchableOpacity
-                  key={diffKey}
-                  style={[
-                    styles.difficultyChip,
-                    isSelected && { borderColor: diffConfig.badgeColor, backgroundColor: `${diffConfig.badgeColor}15` },
-                  ]}
-                  onPress={() => setSelectedDifficulty(diffKey)}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.diffDot, { backgroundColor: diffConfig.badgeColor }]} />
-                  <Text
-                    style={[
-                      styles.difficultyText,
-                      isSelected && { color: diffConfig.badgeColor, fontWeight: '700' },
-                    ]}
-                  >
-                    {diffConfig.label}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {(() => {
-            const currentCat = THEME_CATEGORIES.find(c => c.id === selectedCategory) || THEME_CATEGORIES[0];
-            const diffConfig = currentCat.difficulties[selectedDifficulty];
-            return (
-              <Text style={styles.diffDescriptionText}>
-                💡 {diffConfig.desc}
-              </Text>
-            );
-          })()}
 
           {/* Speltyp: Solo vs Lagspel */}
           <Text style={styles.sectionLabel}>Speltyp</Text>
