@@ -1761,9 +1761,6 @@ export default function App() {
         phings={gamePhings}
         currentUserId={user?.id || 1}
         onClose={() => setGameReviewVisible(false)}
-        onVoteSuccess={() => {
-          if (refreshRef.current) refreshRef.current();
-        }}
       />
 
       <StatusBar style="auto" />
