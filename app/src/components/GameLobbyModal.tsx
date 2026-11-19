@@ -20,6 +20,8 @@ import i18n from '../i18n';
 interface GameLobbyModalProps {
   visible: boolean;
   currentUserId: number;
+  userIcon?: string;
+  onOpenIconPicker?: () => void;
   invitedContacts: AppContact[];
   onClose: () => void;
   onOpenContacts: () => void;
@@ -38,6 +40,8 @@ const DURATION_OPTIONS = [30, 60, 180, 360, 1440];
 export default function GameLobbyModal({
   visible,
   currentUserId,
+  userIcon = '🦊',
+  onOpenIconPicker,
   invitedContacts,
   onClose,
   onOpenContacts,
@@ -110,6 +114,27 @@ export default function GameLobbyModal({
             placeholder="T.ex. AW-jakten eller Stadssafari"
             maxLength={40}
           />
+
+          {/* Din Spelar-ikon */}
+          {onOpenIconPicker && (
+            <>
+              <Text style={styles.sectionLabel}>Din spelar-ikon</Text>
+              <TouchableOpacity
+                style={styles.playerIconCard}
+                onPress={onOpenIconPicker}
+                activeOpacity={0.8}
+              >
+                <View style={styles.playerIconCircle}>
+                  <Text style={styles.playerIconEmoji}>{userIcon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.playerIconTitle}>Syns på kartan för alla i spelet</Text>
+                  <Text style={styles.playerIconSubtitle}>Tryck här för att byta djur, fordon eller symbol</Text>
+                </View>
+                <Text style={styles.playerIconChangeText}>Ändra ›</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {/* Välj Tema / Kategori */}
           <Text style={styles.sectionLabel}>Välj Tema</Text>
@@ -345,6 +370,44 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
+  },
+  playerIconCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 12,
+    gap: 12,
+  },
+  playerIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#F0FDFA',
+    borderWidth: 2,
+    borderColor: '#0F4C5C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playerIconEmoji: {
+    fontSize: 24,
+  },
+  playerIconTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  playerIconSubtitle: {
+    fontSize: 11.5,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  playerIconChangeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F4C5C',
   },
   categoriesContainer: {
     gap: 8,

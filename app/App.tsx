@@ -16,6 +16,7 @@ import MeetingConfigModal from './src/components/MeetingConfigModal';
 import BingoGridModal from './src/components/BingoGridModal';
 import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
+import IconPickerModal from './src/components/IconPickerModal';
 import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam, GameParticipant } from './src/api';
 import { getQueuedPhings, enqueuePhing, flushOfflineQueue, QueuedPhing } from './src/offlineQueue';
 import { ApiError } from './src/config';
@@ -57,6 +58,7 @@ export default function App() {
   const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
   const [bingoGridVisible, setBingoGridVisible] = useState(false);
   const [gameReviewVisible, setGameReviewVisible] = useState(false);
+  const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [gameInvitedContacts, setGameInvitedContacts] = useState<AppContact[]>([]);
   const [pingModalVisible, setPingModalVisible] = useState(false);
   const [pingTarget, setPingTarget] = useState<AppContact[] | null>(null);
@@ -315,7 +317,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    getSavedMapIcon().then(setMyMapIcon);
+    getSavedMapIcon().then(saved => {
+      if (saved) setMyMapIcon(saved);
+    });
   }, []);
   const [isRespondingRequest, setIsRespondingRequest] = useState(false);
 
@@ -1278,6 +1282,17 @@ export default function App() {
           </View>
         )}
 
+        {/* Min Avatar / Spelar-ikon högst upp till höger */}
+        {!meetingDraft && !activeGame && (
+          <TouchableOpacity
+            style={styles.topAvatarBtn}
+            onPress={() => setIconPickerVisible(true)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.topAvatarEmoji}>{myMapIcon}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Aktivt Spel Banner i toppen */}
         {activeGame && (
           <View style={styles.activeGameBanner}>
@@ -1691,6 +1706,8 @@ export default function App() {
       <GameLobbyModal
         visible={gameLobbyVisible}
         currentUserId={user?.id || 1}
+        userIcon={myMapIcon}
+        onOpenIconPicker={() => setIconPickerVisible(true)}
         invitedContacts={gameInvitedContacts}
         onClose={() => setGameLobbyVisible(false)}
         onOpenContacts={() => openModal('game')}
@@ -1701,6 +1718,16 @@ export default function App() {
           setBingoGridVisible(true);
           if (refreshRef.current) refreshRef.current();
         }}
+      />
+
+      <IconPickerModal
+        visible={iconPickerVisible}
+        selectedIcon={myMapIcon}
+        onSelectIcon={(emoji) => {
+          setMyMapIcon(emoji);
+          saveMapIcon(emoji);
+        }}
+        onClose={() => setIconPickerVisible(false)}
       />
 
       <BingoGridModal
@@ -1759,6 +1786,28 @@ const styles = StyleSheet.create({
     width: 260,
     height: 72,
     opacity: 0.7,
+  },
+  topAvatarBtn: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 52 : 40,
+    right: 16,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 95,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    borderWidth: 2,
+    borderColor: '#0F4C5C',
+  },
+  topAvatarEmoji: {
+    fontSize: 24,
   },
   topOverlay: {
     position: 'absolute',

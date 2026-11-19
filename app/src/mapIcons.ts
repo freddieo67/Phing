@@ -7,47 +7,74 @@ export interface MapIconItem {
   readonly label: string;
 }
 
-function mapIcon(id: string, emoji: string): MapIconItem {
+function mapIcon(id: string, emoji: string, fallbackLabel?: string): MapIconItem {
   return {
     id,
     emoji,
     get label() {
-      return i18n.t(`icon_${id}`);
+      const key = `icon_${id}`;
+      return i18n.t(key) !== key ? i18n.t(key) : (fallbackLabel || id);
     },
   };
 }
 
 export const MAP_ICONS: MapIconItem[] = [
-  mapIcon('pig', '🐷'),
-  mapIcon('alien', '👽'),
-  mapIcon('clown', '🤡'),
-  mapIcon('beer', '🍺'),
-  mapIcon('owl', '🦉'),
-  mapIcon('frog', '🐸'),
-  mapIcon('monkey', '🐵'),
-  mapIcon('crab', '🦀'),
-  mapIcon('smiley', '🙂'),
-  mapIcon('ghost', '👻'),
-  mapIcon('skull', '💀'),
-  mapIcon('snake', '🐍'),
-  mapIcon('whale', '🐳'),
+  // Djur & Varelser
+  mapIcon('fox', '🦊', 'Räv'),
+  mapIcon('tiger', '🐯', 'Tiger'),
+  mapIcon('lion', '🦁', 'Lejon'),
+  mapIcon('wolf', '🐺', 'Varg'),
+  mapIcon('bear', '🐻', 'Björn'),
+  mapIcon('panda', '🐼', 'Panda'),
+  mapIcon('eagle', '🦅', 'Örn'),
+  mapIcon('owl', '🦉', 'Uggla'),
+  mapIcon('frog', '🐸', 'Groda'),
+  mapIcon('monkey', '🐵', 'Apa'),
+  mapIcon('octopus', '🐙', 'Bläckfisk'),
+  mapIcon('pig', '🐷', 'Gris'),
+  mapIcon('unicorn', '🦄', 'Enhörning'),
+  mapIcon('shark', '🦈', 'Haj'),
+  mapIcon('bee', '🐝', 'Bi'),
+
+  // Fordon & Fart
+  mapIcon('rocket', '🚀', 'Raket'),
+  mapIcon('racecar', '🏎️', 'Racerbil'),
+  mapIcon('lightning', '⚡', 'Blixt'),
+  mapIcon('motorcycle', '🏍️', 'Motorcykel'),
+  mapIcon('bicycle', '🚲', 'Cykel'),
+  mapIcon('helicopter', '🚁', 'Helikopter'),
+  mapIcon('ufo', '🛸', 'UFO'),
+
+  // Symboler & Figurer
+  mapIcon('target', '🎯', 'Måltavla'),
+  mapIcon('fire', '🔥', 'Eld'),
+  mapIcon('diamond', '💎', 'Diamant'),
+  mapIcon('crown', '👑', 'Krona'),
+  mapIcon('ghost', '👻', 'Spöke'),
+  mapIcon('alien', '👽', 'Rymdvarelse'),
+  mapIcon('clown', '🤡', 'Clown'),
+  mapIcon('robot', '🤖', 'Robot'),
+  mapIcon('ninja', '🥷', 'Ninja'),
+  mapIcon('cowboy', '🤠', 'Cowboy'),
+  mapIcon('beer', '🍺', 'Öl'),
+  mapIcon('pizza', '🍕', 'Pizza'),
 ];
 
 export type MapIconEmoji = string;
-export const DEFAULT_MAP_ICON: MapIconEmoji = '🐷';
+export const DEFAULT_MAP_ICON: MapIconEmoji = '🦊';
 
-const MAP_ICON_KEY = 'position.user_map_icon';
+const MAP_ICON_KEY = 'phing.user_map_icon';
 
-export async function getSavedMapIcon(): Promise<MapIconEmoji> {
+export async function getSavedMapIcon(): Promise<MapIconEmoji | null> {
   try {
     const raw = await AsyncStorage.getItem(MAP_ICON_KEY);
-    if (raw && MAP_ICONS.some(i => i.emoji === raw || i.id === raw)) {
+    if (raw && raw.trim().length > 0) {
       return raw as MapIconEmoji;
     }
   } catch (e) {
     console.warn('Kunde inte läsa sparad kartikon:', e);
   }
-  return DEFAULT_MAP_ICON;
+  return null;
 }
 
 export async function saveMapIcon(emoji: MapIconEmoji): Promise<void> {

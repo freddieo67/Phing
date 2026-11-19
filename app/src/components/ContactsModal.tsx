@@ -125,7 +125,9 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
     setShareSubMode('position');
     setSelectedMeetingDuration(60);
     setShowIconPicker(false);
-    getSavedMapIcon().then(setSelectedIcon);
+    getSavedMapIcon().then(saved => {
+      if (saved) setSelectedIcon(saved);
+    });
     initContacts();
 
     const appStateSub = AppState.addEventListener('change', state => {
