@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { pool } from './db';
 import { getDisplayName, sendPush } from './push';
 
+// Se till att hint-kolumnen finns i game_items
+pool.query(`ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS hint TEXT DEFAULT '';`).catch(err => {
+  console.warn('Migration game_items.hint warning:', err.message);
+});
+
 export const gamesRouter = Router();
 
 function parseId(value: unknown): number | null {
@@ -26,9 +31,9 @@ gamesRouter.post('/', async (req, res) => {
     ? req.body.participant_ids.map(parseId).filter((id): id is number => id !== null && id !== hostId)
     : [];
 
-  const items: string[] = Array.isArray(req.body.items) && req.body.items.length === totalTiles
+  const rawItems: any[] = Array.isArray(req.body.items) && req.body.items.length === totalTiles
     ? req.body.items
-    : Array.from({ length: totalTiles }, (_, i) => `Mål ${i + 1}`);
+    : Array.from({ length: totalTiles }, (_, i) => ({ label: `Mål ${i + 1}`, emoji: '🎯', hint: '' }));
 
   if (!hostId) {
     return res.status(400).json({ error: 'host_id is required' });
@@ -67,11 +72,14 @@ gamesRouter.post('/', async (req, res) => {
 
     // Lägg till mål / brickans rutor
     for (let i = 0; i < totalTiles; i++) {
-      const label = items[i] || `Mål ${i + 1}`;
+      const raw = rawItems[i];
+      const label = typeof raw === 'string' ? raw : (raw?.label || `Mål ${i + 1}`);
+      const emoji = typeof raw === 'object' && raw?.emoji ? raw.emoji : '🎯';
+      const hint = typeof raw === 'object' && raw?.hint ? raw.hint : '';
       await client.query(
-        `INSERT INTO public.game_items (game_id, tile_index, label)
-         VALUES ($1, $2, $3)`,
-        [game.id, i, label]
+        `INSERT INTO public.game_items (game_id, tile_index, label, emoji, hint)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [game.id, i, label, emoji, hint]
       );
     }
 
@@ -189,7 +197,7 @@ gamesRouter.get('/:id', async (req, res) => {
 
     // Hämta brickans rutor (items)
     const itemsRes = await pool.query(
-      `SELECT tile_index, label, emoji FROM public.game_items WHERE game_id = $1 ORDER BY tile_index ASC`,
+      `SELECT tile_index, label, emoji, hint FROM public.game_items WHERE game_id = $1 ORDER BY tile_index ASC`,
       [gameId]
     );
 

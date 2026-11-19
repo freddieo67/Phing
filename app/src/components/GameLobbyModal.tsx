@@ -14,6 +14,7 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import { api, Game, GridSize, GameMode } from '../api';
 import { AppContact } from './ContactsModal';
+import { THEME_CATEGORIES, Difficulty, drawRandomTiles } from '../themes';
 import i18n from '../i18n';
 
 interface GameLobbyModalProps {
@@ -44,6 +45,8 @@ export default function GameLobbyModal({
   onGameCreated,
 }: GameLobbyModalProps) {
   const [title, setTitle] = useState('Phing Fotojakt');
+  const [selectedCategory, setSelectedCategory] = useState<string>('city');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('easy');
   const [selectedGrid, setSelectedGrid] = useState<GridSize>('3x3');
   const [selectedDuration, setSelectedDuration] = useState<number>(30);
   const [isTeamGame, setIsTeamGame] = useState(true);
@@ -59,7 +62,12 @@ export default function GameLobbyModal({
     setCreating(true);
     try {
       const selectedOption = GRID_OPTIONS.find(o => o.id === selectedGrid) || GRID_OPTIONS[0];
-      const items = Array.from({ length: selectedOption.total }, (_, i) => `Mål ${i + 1}`);
+      const drawnTiles = drawRandomTiles(selectedCategory, selectedDifficulty, selectedOption.total);
+      const items = drawnTiles.map(t => ({
+        label: t.title,
+        emoji: t.icon,
+        hint: t.hint,
+      }));
 
       const game = await api.createGame({
         host_id: currentUserId,
@@ -103,6 +111,77 @@ export default function GameLobbyModal({
             placeholder="T.ex. AW-jakten eller Stadssafari"
             maxLength={40}
           />
+
+          {/* Välj Tema / Kategori */}
+          <Text style={styles.sectionLabel}>Välj Tema</Text>
+          <View style={styles.categoriesContainer}>
+            {THEME_CATEGORIES.map(cat => {
+              const isSelected = selectedCategory === cat.id;
+              return (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                  onPress={() => setSelectedCategory(cat.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <View style={styles.categoryTextCol}>
+                    <Text style={[styles.categoryTitle, isSelected && styles.categoryTitleSelected]}>
+                      {cat.name}
+                    </Text>
+                    <Text style={styles.categoryDesc} numberOfLines={1}>
+                      {cat.description}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <View style={styles.categoryCheckBadge}>
+                      <FontAwesome6 name="check" size={11} color="#FFFFFF" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Svårighetsgrad */}
+          <Text style={styles.sectionLabel}>Svårighetsgrad</Text>
+          <View style={styles.difficultyRow}>
+            {(['easy', 'medium', 'hard'] as Difficulty[]).map(diffKey => {
+              const currentCat = THEME_CATEGORIES.find(c => c.id === selectedCategory) || THEME_CATEGORIES[0];
+              const diffConfig = currentCat.difficulties[diffKey];
+              const isSelected = selectedDifficulty === diffKey;
+              return (
+                <TouchableOpacity
+                  key={diffKey}
+                  style={[
+                    styles.difficultyChip,
+                    isSelected && { borderColor: diffConfig.badgeColor, backgroundColor: `${diffConfig.badgeColor}15` },
+                  ]}
+                  onPress={() => setSelectedDifficulty(diffKey)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.diffDot, { backgroundColor: diffConfig.badgeColor }]} />
+                  <Text
+                    style={[
+                      styles.difficultyText,
+                      isSelected && { color: diffConfig.badgeColor, fontWeight: '700' },
+                    ]}
+                  >
+                    {diffConfig.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {(() => {
+            const currentCat = THEME_CATEGORIES.find(c => c.id === selectedCategory) || THEME_CATEGORIES[0];
+            const diffConfig = currentCat.difficulties[selectedDifficulty];
+            return (
+              <Text style={styles.diffDescriptionText}>
+                💡 {diffConfig.desc}
+              </Text>
+            );
+          })()}
 
           {/* Speltyp: Solo vs Lagspel */}
           <Text style={styles.sectionLabel}>Speltyp</Text>
@@ -307,6 +386,83 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 15,
     color: '#111827',
+  },
+  categoriesContainer: {
+    gap: 8,
+  },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 12,
+    gap: 12,
+  },
+  categoryCardSelected: {
+    borderColor: '#0F4C5C',
+    backgroundColor: '#F0FDFA',
+  },
+  categoryIcon: {
+    fontSize: 26,
+  },
+  categoryTextCol: {
+    flex: 1,
+  },
+  categoryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  categoryTitleSelected: {
+    color: '#0F4C5C',
+  },
+  categoryDesc: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  categoryCheckBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#0F4C5C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  difficultyRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  difficultyChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+  },
+  diffDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  difficultyText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  diffDescriptionText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 6,
+    fontStyle: 'italic',
+    paddingHorizontal: 4,
   },
   segmentedRow: {
     flexDirection: 'row',

@@ -694,7 +694,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
                                 ]}
                               >
                                 <Text style={styles.favoriteAvatarText}>
-                                  {item.name.charAt(0).toUpperCase()}
+                                  {(item.name || '?').charAt(0).toUpperCase()}
                                 </Text>
                                 {isChecked && (
                                   <View style={styles.favoriteCheckBadge}>
@@ -751,7 +751,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
                         >
                           <View style={styles.friendAvatar}>
                             <Text style={styles.friendAvatarText}>
-                              {item.name.charAt(0).toUpperCase()}
+                              {(item.name || '?').charAt(0).toUpperCase()}
                             </Text>
                           </View>
                           <Text style={styles.contactName} numberOfLines={1}>

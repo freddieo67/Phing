@@ -106,6 +106,7 @@ export interface GameItem {
   tile_index: number;
   label: string;
   emoji?: string;
+  hint?: string;
 }
 
 export interface GameParticipant {
@@ -215,7 +216,7 @@ export const api = {
     is_team_game?: boolean;
     game_mode?: GameMode;
     starts_at?: string;
-    items?: string[];
+    items?: (string | { label: string; emoji?: string; hint?: string })[];
     participant_ids?: number[];
   }) => apiPost<Game>('/games', body),
 

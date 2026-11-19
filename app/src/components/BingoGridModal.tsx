@@ -166,36 +166,56 @@ export default function BingoGridModal({
       }
     }
 
-    if (!canLaunch()) return;
-    setActiveTileIndex(index);
+    const item = items.find(it => it.tile_index === index);
+    const label = item?.label || `Mål ${index + 1}`;
+    const emoji = item?.emoji || '🎯';
+    const hint = item?.hint;
 
-    // Öppna direkt kameran
-    try {
-      let perm = await ImagePicker.getCameraPermissionsAsync();
-      if (!perm.granted) {
-        perm = await ImagePicker.requestCameraPermissionsAsync();
-      }
-      if (!perm.granted) {
-        Alert.alert(i18n.t('permission_missing_title'), i18n.t('camera_permission_needed'));
+    const startCamera = async () => {
+      if (!canLaunch()) return;
+      setActiveTileIndex(index);
+
+      // Öppna direkt kameran
+      try {
+        let perm = await ImagePicker.getCameraPermissionsAsync();
+        if (!perm.granted) {
+          perm = await ImagePicker.requestCameraPermissionsAsync();
+        }
+        if (!perm.granted) {
+          Alert.alert(i18n.t('permission_missing_title'), i18n.t('camera_permission_needed'));
+          setActiveTileIndex(null);
+          return;
+        }
+
+        const res = await ImagePicker.launchCameraAsync({
+          mediaTypes: ['images'],
+          quality: 0.8,
+          allowsEditing: false,
+        });
+
+        if (!res.canceled && res.assets?.[0]?.uri) {
+          await processAndSubmit(index, res.assets[0].uri);
+        } else {
+          setActiveTileIndex(null);
+        }
+      } catch (e) {
+        console.warn('Kamerafel vid bingoruta:', e);
+        Alert.alert(i18n.t('error'), i18n.t('camera_error'));
         setActiveTileIndex(null);
-        return;
       }
+    };
 
-      const res = await ImagePicker.launchCameraAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-        allowsEditing: false,
-      });
-
-      if (!res.canceled && res.assets?.[0]?.uri) {
-        await processAndSubmit(index, res.assets[0].uri);
-      } else {
-        setActiveTileIndex(null);
-      }
-    } catch (e) {
-      console.warn('Kamerafel vid bingoruta:', e);
-      Alert.alert(i18n.t('error'), i18n.t('camera_error'));
-      setActiveTileIndex(null);
+    if (hint) {
+      Alert.alert(
+        `${emoji} ${label}`,
+        hint,
+        [
+          { text: 'Avbryt', style: 'cancel' },
+          { text: '📸 Ta foto', onPress: startCamera },
+        ]
+      );
+    } else {
+      startCamera();
     }
   };
 
@@ -359,6 +379,8 @@ export default function BingoGridModal({
                     </View>
                     {isProcessingThis ? (
                       <ActivityIndicator size="small" color="#0F4C5C" />
+                    ) : item?.emoji ? (
+                      <Text style={styles.tileEmoji}>{item.emoji}</Text>
                     ) : (
                       <FontAwesome6 name="camera" size={24} color="#0F4C5C" style={{ opacity: 0.6 }} />
                     )}
@@ -658,6 +680,10 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#6B7280',
+  },
+  tileEmoji: {
+    fontSize: 24,
+    marginBottom: 2,
   },
   tileLabel: {
     fontSize: 11,

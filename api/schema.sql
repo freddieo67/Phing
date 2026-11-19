@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS public.game_items (
   tile_index INTEGER NOT NULL,
   label      VARCHAR(100) NOT NULL,
   emoji      VARCHAR(16) DEFAULT '🎯',
+  hint       TEXT DEFAULT '',
   UNIQUE (game_id, tile_index)
 );
 
