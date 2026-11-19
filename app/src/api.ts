@@ -220,6 +220,7 @@ export const api = {
     starts_at?: string;
     items?: (string | { label: string; emoji?: string; hint?: string })[];
     participant_ids?: number[];
+    team_assignments?: Record<number, 'red' | 'blue'>;
   }) => apiPost<Game>('/games', body),
 
   getUserGames: (userId: number) => apiGet<Game[]>(`/games/user/${userId}`),

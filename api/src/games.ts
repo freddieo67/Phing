@@ -84,18 +84,31 @@ gamesRouter.post('/', async (req, res) => {
       );
     }
 
-    // Lägg till värden som accepterad deltagare (i Lag Röd om lagspel)
+    const teamAssignments: Record<string, string> =
+      typeof req.body.team_assignments === 'object' && req.body.team_assignments !== null
+        ? req.body.team_assignments
+        : {};
+
+    // Lägg till värden som accepterad deltagare (i Lag Röd eller valt lag om lagspel)
+    const hostAssignedTeam = isTeamGame
+      ? (teamAssignments[String(hostId)] === 'blue' ? team2Id : team1Id)
+      : null;
+
     await client.query(
       `INSERT INTO public.game_participants (game_id, user_id, team_id, status)
        VALUES ($1, $2, $3, 'accepted')`,
-      [game.id, hostId, team1Id]
+      [game.id, hostId, hostAssignedTeam]
     );
 
-    // Bjud in vänner (fördela jämnt mellan lagen om lagspel)
+    // Bjud in vänner (respektera manuella val från lobbyn, annars fördela jämnt)
     for (let i = 0; i < participantIds.length; i++) {
       const pid = participantIds[i];
       if (pid === undefined) continue;
-      const assignedTeamId = isTeamGame ? (i % 2 === 0 ? team2Id : team1Id) : null;
+      const chosen = teamAssignments[String(pid)];
+      const assignedTeamId = isTeamGame
+        ? (chosen === 'red' ? team1Id : (chosen === 'blue' ? team2Id : (i % 2 === 0 ? team2Id : team1Id)))
+        : null;
+
       await client.query(
         `INSERT INTO public.game_participants (game_id, user_id, team_id, status)
          VALUES ($1, $2, $3, 'invited')

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -56,6 +56,38 @@ export default function GameLobbyModal({
   const [gameMode, setGameMode] = useState<GameMode>('block');
   const [creating, setCreating] = useState(false);
 
+  // Lagtilldelning vid start: Record<userId, 'red' | 'blue'>
+  const [teamAssignments, setTeamAssignments] = useState<Record<number, 'red' | 'blue'>>({});
+
+  useEffect(() => {
+    setTeamAssignments(prev => {
+      const next: Record<number, 'red' | 'blue'> = { ...prev };
+      if (!next[currentUserId]) {
+        next[currentUserId] = 'red';
+      }
+      invitedContacts.forEach((c, idx) => {
+        if (!next[c.userId]) {
+          next[c.userId] = idx % 2 === 0 ? 'blue' : 'red';
+        }
+      });
+      return next;
+    });
+  }, [invitedContacts, currentUserId]);
+
+  const togglePlayerTeam = (userId: number) => {
+    setTeamAssignments(prev => {
+      const current = prev[userId] || (userId === currentUserId ? 'red' : 'blue');
+      return {
+        ...prev,
+        [userId]: current === 'red' ? 'blue' : 'red',
+      };
+    });
+  };
+
+  const hostTeam = teamAssignments[currentUserId] || 'red';
+  const redCount = (hostTeam === 'red' ? 1 : 0) + invitedContacts.filter(c => (teamAssignments[c.userId] || 'blue') === 'red').length;
+  const blueCount = (hostTeam === 'blue' ? 1 : 0) + invitedContacts.filter(c => (teamAssignments[c.userId] || 'blue') === 'blue').length;
+
   const handleCreate = async () => {
     if (!title.trim()) {
       Alert.alert('Namn saknas', 'Ange ett namn för utmaningen.');
@@ -79,6 +111,7 @@ export default function GameLobbyModal({
         duration_minutes: selectedDuration,
         is_team_game: isTeamGame,
         game_mode: gameMode,
+        team_assignments: isTeamGame ? teamAssignments : undefined,
         items,
         participant_ids: invitedContacts.map(c => c.userId),
       });
@@ -295,6 +328,79 @@ export default function GameLobbyModal({
                   </TouchableOpacity>
                 </View>
               ))}
+            </View>
+          )}
+
+          {/* Laguppdelning (endast aktiv vid lagspel) */}
+          {isTeamGame && (
+            <View style={styles.teamAssignSection}>
+              <View style={styles.teamAssignHeader}>
+                <Text style={styles.sectionLabel}>Välj lag för deltagarna</Text>
+                <View style={styles.teamScoreBadgeRow}>
+                  <View style={styles.redCountBadge}>
+                    <Text style={styles.redCountBadgeText}>🔴 Lag Röd ({redCount})</Text>
+                  </View>
+                  <Text style={styles.teamVsBadgeText}>vs</Text>
+                  <View style={styles.blueCountBadge}>
+                    <Text style={styles.blueCountBadgeText}>🔵 Lag Blå ({blueCount})</Text>
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.teamAssignSub}>
+                Tryck på knappen bredvid en spelare för att byta lag innan du startar.
+              </Text>
+
+              {/* Värden (Du) */}
+              <View style={styles.playerTeamCard}>
+                <View style={styles.playerInfoRow}>
+                  <Text style={styles.playerAvatarEmoji}>{userIcon}</Text>
+                  <View>
+                    <Text style={styles.playerCardName}>Du (Värd)</Text>
+                    <Text style={styles.playerRoleSub}>Spelskapare</Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.teamPillBtn,
+                    hostTeam === 'red' ? styles.redTeamPill : styles.blueTeamPill
+                  ]}
+                  onPress={() => togglePlayerTeam(currentUserId)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.teamPillBtnText}>
+                    {hostTeam === 'red' ? '🔴 Lag Röd' : '🔵 Lag Blå'}
+                  </Text>
+                  <FontAwesome6 name="arrow-right-arrow-left" size={10} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Inbjudna vänner */}
+              {invitedContacts.map(c => {
+                const assigned = teamAssignments[c.userId] || 'blue';
+                return (
+                  <View key={`team-${c.userId}`} style={styles.playerTeamCard}>
+                    <View style={styles.playerInfoRow}>
+                      <View style={styles.playerAvatarCircle}>
+                        <Text style={styles.playerAvatarLetter}>{c.name.charAt(0).toUpperCase()}</Text>
+                      </View>
+                      <Text style={styles.playerCardName} numberOfLines={1}>{c.name}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[
+                        styles.teamPillBtn,
+                        assigned === 'red' ? styles.redTeamPill : styles.blueTeamPill
+                      ]}
+                      onPress={() => togglePlayerTeam(c.userId)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.teamPillBtnText}>
+                        {assigned === 'red' ? '🔴 Lag Röd' : '🔵 Lag Blå'}
+                      </Text>
+                      <FontAwesome6 name="arrow-right-arrow-left" size={10} color="#FFFFFF" style={{ marginLeft: 6 }} />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -699,5 +805,124 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
+  },
+  teamAssignSection: {
+    marginTop: 20,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  teamAssignHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  teamScoreBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  redCountBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  redCountBadgeText: {
+    color: '#DC2626',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  teamVsBadgeText: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  blueCountBadge: {
+    backgroundColor: '#DBEAFE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  blueCountBadgeText: {
+    color: '#2563EB',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  teamAssignSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  playerTeamCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  playerInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  playerAvatarEmoji: {
+    fontSize: 22,
+  },
+  playerAvatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#0F4C5C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playerAvatarLetter: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  playerCardName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E293B',
+    maxWidth: 160,
+  },
+  playerRoleSub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  teamPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  redTeamPill: {
+    backgroundColor: '#EF4444',
+  },
+  blueTeamPill: {
+    backgroundColor: '#3B82F6',
+  },
+  teamPillBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 12,
   },
 });
