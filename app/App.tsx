@@ -209,16 +209,26 @@ export default function App() {
 
       setGamePhings(prev => [res.phing, ...prev.filter(p => !(p.user_id === user.id && p.tile_index === tileIndex))]);
 
+      const scoreSuffix = res.ai_score !== undefined ? ` (${res.ai_score}% säkerhet)` : '';
+      const reasonText = res.ai_reason ? `\n\n"${res.ai_reason}"` : '';
+
       if (res.hasWon) {
         Alert.alert(
           '🏆 THE WINNER TAKES IT ALL!',
-          `${res.winningTeamName || 'Ditt lag'} har tagit en ointaglig ledning och vinner matchen!`
+          `${res.winningTeamName || 'Ditt lag'} har tagit en ointaglig ledning och vinner matchen!${scoreSuffix}${reasonText}`
         );
       } else {
-        Alert.alert('🎯 Godkänd!', `Ruta ${tileIndex + 1} erövrad och sparad som Phing på kartan!`);
+        Alert.alert(
+          `🎯 Godkänd!${scoreSuffix}`,
+          `Ruta ${tileIndex + 1} är erövrad och sparad som Phing på kartan!${reasonText}`
+        );
       }
       if (refreshRef.current) refreshRef.current();
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.serverMessage) {
+        Alert.alert('❌ Ej godkänd', e.serverMessage);
+        return;
+      }
       console.warn('Nätverksfel vid inskickning av phing, sparar till offline-kö:', e);
       try {
         const queued = await enqueuePhing({

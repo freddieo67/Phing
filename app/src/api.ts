@@ -141,6 +141,8 @@ export interface GamePhing {
   approved_count: number;
   rejected_count: number;
   created_at: string;
+  ai_score?: number | null;
+  ai_reason?: string | null;
 }
 
 export interface GameDetails {
@@ -241,7 +243,7 @@ export const api = {
     accuracy_meters?: number | null;
     photo_thumb: string;
     photo_data?: string;
-  }) => apiPost<{ phing: GamePhing; userScore: number; hasWon: boolean; winningTeamName?: string }>('/games/' + gameId + '/phings', body),
+  }) => apiPost<{ phing: GamePhing; userScore: number; hasWon: boolean; winningTeamName?: string; ai_score?: number; ai_reason?: string }>('/games/' + gameId + '/phings', body),
 
   voteGamePhing: (gameId: number, phingId: number, voterId: number, vote: 'approve' | 'reject') =>
     apiPost<{ ok: boolean; approved_count: number; rejected_count: number; status: string }>(

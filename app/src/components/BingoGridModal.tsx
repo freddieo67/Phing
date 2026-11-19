@@ -443,6 +443,17 @@ export default function BingoGridModal({
             </View>
           </Modal>
         )}
+
+        {/* AI analys-indikator */}
+        {capturing && (
+          <View style={styles.aiLoadingOverlay}>
+            <View style={styles.aiLoadingCard}>
+              <ActivityIndicator size="large" color="#0F4C5C" />
+              <Text style={styles.aiLoadingTitle}>🤖 AI analyserar fotot...</Text>
+              <Text style={styles.aiLoadingSubtitle}>Kräver minst 75% match för att godkännas</Text>
+            </View>
+          </View>
+        )}
       </View>
     </Modal>
   );
@@ -827,5 +838,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 14,
+  },
+  aiLoadingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  aiLoadingCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 28,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  aiLoadingTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F4C5C',
+    marginTop: 14,
+  },
+  aiLoadingSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 6,
+    fontWeight: '500',
   },
 });

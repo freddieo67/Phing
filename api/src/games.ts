@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pool } from './db';
 import { getDisplayName, sendPush } from './push';
+import { verifyPhotoWithGemini } from './aiService.js';
 
 // Se till att hint-kolumnen finns i game_items
 pool.query(`ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS hint TEXT DEFAULT '';`).catch(err => {
@@ -219,7 +220,7 @@ gamesRouter.get('/:id', async (req, res) => {
     // Hämta inskickade phings för spelet (inkluderar lagfärg om lagspel)
     const phingsRes = await pool.query(
       `SELECT gp.id, gp.user_id, gp.team_id, gp.tile_index, gp.photo_thumb, gp.status,
-              gp.approved_count, gp.rejected_count, gp.created_at,
+              gp.approved_count, gp.rejected_count, gp.created_at, gp.ai_score, gp.ai_reason,
               ST_Y(gp.location) AS latitude, ST_X(gp.location) AS longitude,
               u.display_name AS user_name,
               gt.name AS team_name, gt.color AS team_color
@@ -446,13 +447,41 @@ gamesRouter.post('/:id/phings', async (req, res) => {
       }
     }
 
+    // Hämta målets namn och ledtråd för AI-analys
+    const itemQueryRes = await client.query(
+      `SELECT label, hint FROM public.game_items WHERE game_id = $1 AND tile_index = $2`,
+      [gameId, tileIndex]
+    );
+    const targetLabel = itemQueryRes.rows[0]?.label || `Mål ${tileIndex + 1}`;
+    const targetHint = itemQueryRes.rows[0]?.hint || null;
+
+    // AI-identifiering med Google Gemini (Kräver minst 75% för godkännande)
+    let aiResult;
+    try {
+      aiResult = await verifyPhotoWithGemini(photoData, targetLabel, targetHint);
+    } catch (aiErr: any) {
+      console.error('AI verification failed:', aiErr);
+      await client.query('ROLLBACK');
+      return res.status(500).json({ error: 'Kunde inte analysera bilden med AI. Försök igen.' });
+    }
+
+    if (!aiResult.approved) {
+      await client.query('ROLLBACK');
+      return res.status(422).json({
+        error: `Fotot godkändes inte (${aiResult.score}% säkerhet, krävs minst 75%). ${aiResult.reason}`,
+        ai_score: aiResult.score,
+        ai_reason: aiResult.reason,
+        approved: false,
+      });
+    }
+
     // Spara phing
     const phingRes = await client.query(
-      `INSERT INTO public.game_phings (game_id, user_id, team_id, tile_index, location, accuracy_meters, photo_thumb, photo_data)
-       VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9)
-       RETURNING id, game_id, user_id, team_id, tile_index, photo_thumb, approved_count, rejected_count, created_at,
+      `INSERT INTO public.game_phings (game_id, user_id, team_id, tile_index, location, accuracy_meters, photo_thumb, photo_data, ai_score, ai_reason, status)
+       VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9, $10, $11, 'approved')
+       RETURNING id, game_id, user_id, team_id, tile_index, photo_thumb, approved_count, rejected_count, created_at, ai_score, ai_reason,
                  ST_Y(location) AS latitude, ST_X(location) AS longitude`,
-      [gameId, userId, userTeamId, tileIndex, lng, lat, accuracy, photoThumb, photoData]
+      [gameId, userId, userTeamId, tileIndex, lng, lat, accuracy, photoThumb, photoData, aiResult.score, aiResult.reason]
     );
 
     // Uppdatera deltagarens personliga poäng
@@ -604,7 +633,14 @@ gamesRouter.post('/:id/phings', async (req, res) => {
       ).catch(() => {});
     }
 
-    res.status(201).json({ phing, userScore, hasWon, winningTeamName });
+    res.status(201).json({
+      phing,
+      userScore,
+      hasWon,
+      winningTeamName,
+      ai_score: aiResult.score,
+      ai_reason: aiResult.reason,
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     console.error('Fel vid inskickning av phing:', err);

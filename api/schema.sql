@@ -173,3 +173,8 @@ ALTER TABLE public.game_participants
   ADD COLUMN IF NOT EXISTS icon VARCHAR(16) DEFAULT '🐷',
   ADD COLUMN IF NOT EXISTS location_updated_at TIMESTAMPTZ;
 
+ALTER TABLE public.game_phings
+  ADD COLUMN IF NOT EXISTS ai_score INTEGER,
+  ADD COLUMN IF NOT EXISTS ai_reason TEXT;
+
+
