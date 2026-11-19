@@ -522,8 +522,21 @@ gamesRouter.post('/:id/phings', async (req, res) => {
 
     await client.query('COMMIT');
 
-    const phing = phingRes.rows[0];
+    const phingData = phingRes.rows[0];
     const userName = await getDisplayName(userId);
+    let teamName: string | undefined;
+    let teamColor: string | undefined;
+    if (userTeamId) {
+      const tRes = await pool.query(`SELECT name, color FROM public.game_teams WHERE id = $1`, [userTeamId]);
+      teamName = tRes.rows[0]?.name;
+      teamColor = tRes.rows[0]?.color;
+    }
+    const phing = {
+      ...phingData,
+      user_name: userName,
+      team_name: teamName,
+      team_color: teamColor,
+    };
 
     // Hämta målets namn
     const itemRes = await pool.query(

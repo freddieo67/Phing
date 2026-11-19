@@ -1397,102 +1397,43 @@ export default function App() {
           </TouchableOpacity>
         )}
 
-        {/* Spelknapp (Tävla / Min Bricka) */}
-        {!meetingDraft && (
-          <TouchableOpacity
-            style={activeGame ? styles.gameLaunchBtnActive : styles.gameLaunchBtn}
-            onPress={() => {
-              if (activeGame) {
-                setBingoGridVisible(true);
-              } else {
-                setGameLobbyVisible(true);
-              }
-            }}
-            activeOpacity={0.8}
-          >
-            <FontAwesome6 name={activeGame ? 'table-cells' : 'gamepad'} size={16} color="#FFFFFF" />
-            <Text style={styles.gameLaunchBtnText}>
-              {activeGame ? `Bricka (${myCompletedCount}/${totalGameTiles})` : 'Tävla'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Knappar som ligger ovanpå kartan i botten */}
-        {meetingDraft && !meetingConfigVisible ? (
-          <View style={styles.meetingPickerBar}>
-            {/* Platsinfo */}
-            <View style={styles.detectedPlaceContainer}>
-              <View style={styles.placeInfoCol}>
-                <Text style={styles.detectedPlaceName} numberOfLines={1}>
-                  {loadingPlace
-                    ? i18n.t('searching_nearby_place')
-                    : (meetingPlace ? meetingPlace.name : i18n.t('move_map_instruction'))}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.meetingPickerActions}>
+        {/* Bottenkontroller för Phing */}
+        <View style={styles.phingBottomBar}>
+          {activeGame ? (
+            <View style={styles.activeGameBottomRow}>
               <TouchableOpacity
-                style={styles.meetingCancelBtn}
-                onPress={() => {
-                  setMeetingDraft(null);
-                  setMeetingPlace(null);
-                }}
-                disabled={sendingMeeting}
-              >
-                <Text style={styles.meetingCancelText}>{i18n.t('cancel')}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.meetingProceedBtn}
-                onPress={() => setMeetingConfigVisible(true)}
-                disabled={loadingPlace || sendingMeeting}
+                style={styles.gameGridBtn}
+                onPress={() => setBingoGridVisible(true)}
                 activeOpacity={0.85}
               >
-                <Text style={styles.meetingProceedBtnText}>
-                  {i18n.t('meeting_point_select_place') || 'Välj denna plats'}
+                <FontAwesome6 name="table-cells" size={17} color="#FFFFFF" />
+                <Text style={styles.gameGridBtnText}>
+                  Min Bricka ({myCompletedCount}/{totalGameTiles})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.gameReviewBtn}
+                onPress={() => setGameReviewVisible(true)}
+                activeOpacity={0.85}
+              >
+                <FontAwesome6 name="images" size={16} color="#0F4C5C" />
+                <Text style={styles.gameReviewBtnText}>
+                  Foton ({gamePhings.length})
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
-        ) : !meetingDraft ? (
-          <View style={styles.buttonRow}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.requestButton]} 
-              onPress={() => openModal('request')}
+          ) : (
+            <TouchableOpacity
+              style={styles.startChallengeBtn}
+              onPress={() => setGameLobbyVisible(true)}
+              activeOpacity={0.85}
             >
-              <Text style={[styles.buttonText, styles.requestButtonText]} numberOfLines={1} adjustsFontSizeToFit>
-                {i18n.t('request')}
-              </Text>
+              <FontAwesome6 name="trophy" size={18} color="#FFFFFF" />
+              <Text style={styles.startChallengeBtnText}>Skapa Fotoutmaning</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.pingButton]} 
-              onPress={() => openModal('ping')}
-            >
-              <Text style={[styles.buttonText, styles.pingButtonText]} numberOfLines={1} adjustsFontSizeToFit>
-                Phing
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.flashButton]} 
-              onPress={() => openModal('flash')}
-            >
-              <Text style={[styles.buttonText, styles.flashButtonText]} numberOfLines={2} adjustsFontSizeToFit>
-                {'FLASH\nMESS'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.sendButton]} 
-              onPress={() => openModal('send')}
-            >
-              <Text style={[styles.buttonText, styles.sendButtonText]} numberOfLines={1} adjustsFontSizeToFit>
-                {i18n.t('share')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+          )}
+        </View>
       </View>
       
       {/* Reklamyta: Visas först när annonsmotorn är helt initierad */}
@@ -1901,60 +1842,93 @@ const styles = StyleSheet.create({
   },
   myLocationButton: {
     position: 'absolute',
-    bottom: 96,
+    bottom: 84,
     right: 18,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 8,
-    zIndex: 10,
+    zIndex: 90,
   },
-  gameLaunchBtn: {
+  phingBottomBar: {
     position: 'absolute',
-    bottom: 96,
-    left: 18,
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 22,
+    bottom: Platform.OS === 'ios' ? 28 : 16,
+    left: 16,
+    right: 16,
+    zIndex: 90,
+  },
+  startChallengeBtn: {
     backgroundColor: '#0F4C5C',
+    height: 52,
+    borderRadius: 26,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    zIndex: 90,
+    justifyContent: 'center',
+    gap: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
     elevation: 8,
   },
-  gameLaunchBtnActive: {
-    position: 'absolute',
-    bottom: 96,
-    left: 18,
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 22,
-    backgroundColor: '#10B981',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    zIndex: 90,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 8,
-  },
-  gameLaunchBtnText: {
+  startChallengeBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  activeGameBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  gameGridBtn: {
+    flex: 2,
+    backgroundColor: '#10B981',
+    height: 52,
+    borderRadius: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  gameGridBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  gameReviewBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#0F4C5C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  gameReviewBtnText: {
+    color: '#0F4C5C',
+    fontSize: 13.5,
     fontWeight: '700',
   },
   activeGameBanner: {

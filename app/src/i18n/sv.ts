@@ -43,7 +43,7 @@ export const sv = {
 
   // Map / General
   ad_space: 'Reklam visas här',
-  bg_notification_title: 'Position delar din plats',
+  bg_notification_title: 'Phing delar din plats',
   bg_notification_body: 'Din plats uppdateras live för dina kontakter (10 min).',
   long_press_hint: 'Långt tryck på namnet för att välja flera',
   ping_back: "Svara",
@@ -156,7 +156,7 @@ export const sv = {
   network_unreachable: "Kunde inte nå servern. Kontrollera din internetanslutning.",
   share_position_btn: "Dela position",
   notification_channel: "Standard",
-  welcome: "Välkommen till Position",
+  welcome: "Välkommen till Phing",
   signal_beer: "Bjuder på öl!",
   signal_hug: "Kram",
   signal_great: "Great",
@@ -211,7 +211,7 @@ export const sv = {
   limited_contacts_btn: "Hantera kontakter",
   limited_empty_settings_btn: "Saknar du en kontakt? Ändra här",
   contacts_pre_perm_title: "Hitta dina vänner",
-  contacts_pre_perm_desc: "Position behöver tillgång till dina kontakter för att hitta dina vänner. Välj gärna \"Tillåt full åtkomst\" i nästa ruta så syns dina kontakter automatiskt.",
+  contacts_pre_perm_desc: "Phing behöver tillgång till dina kontakter för att hitta dina vänner. Välj gärna \"Tillåt full åtkomst\" i nästa ruta så syns dina kontakter automatiskt.",
   choose_multiple: "Välj flera",
   favorites_label: "FAVORITER",
   all_friends_caps_label: "ALLA VÄNNER (%{count})",

@@ -83,10 +83,10 @@ export default function GameReviewModal({
                   <View style={styles.cardHeader}>
                     <View style={styles.authorRow}>
                       <View style={styles.avatar}>
-                        <Text style={styles.avatarText}>{phing.user_name.charAt(0).toUpperCase()}</Text>
+                        <Text style={styles.avatarText}>{(phing.user_name || 'Spelare').charAt(0).toUpperCase()}</Text>
                       </View>
                       <View>
-                        <Text style={styles.authorName}>{phing.user_name} {isMine && '(Du)'}</Text>
+                        <Text style={styles.authorName}>{phing.user_name || 'Spelare'} {isMine && '(Du)'}</Text>
                         <Text style={styles.tileTarget}>Mål: {label}</Text>
                       </View>
                     </View>
