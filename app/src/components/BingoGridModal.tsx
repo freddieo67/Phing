@@ -30,6 +30,7 @@ interface BingoGridModalProps {
   onClose: () => void;
   onSubmitTile: (tileIndex: number, photoThumb: string, photoData: string) => Promise<void>;
   onViewPhing?: (phing: GamePhing) => void;
+  onCancelGame?: () => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -49,6 +50,7 @@ export default function BingoGridModal({
   onClose,
   onSubmitTile,
   onViewPhing,
+  onCancelGame,
 }: BingoGridModalProps) {
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -56,6 +58,8 @@ export default function BingoGridModal({
   const lastLaunchRef = useRef(0);
 
   if (!game) return null;
+
+  const isHost = game.host_id === currentUserId;
 
   const totalTiles = (game.rows || 3) * (game.cols || 3);
   const isBlockMode = game.game_mode === 'block';
@@ -230,10 +234,22 @@ export default function BingoGridModal({
               {game.grid_size} ({game.rows} rader × 3 per rad)
             </Text>
           </View>
-          <TouchableOpacity style={styles.mapToggleBtn} onPress={onClose} activeOpacity={0.8}>
-            <FontAwesome6 name="map-location-dot" size={15} color="#0F4C5C" />
-            <Text style={styles.mapToggleBtnText}>Visa Karta</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            {onCancelGame && (
+              <TouchableOpacity
+                style={styles.headerCancelBtn}
+                onPress={onCancelGame}
+                activeOpacity={0.8}
+              >
+                <FontAwesome6 name="xmark" size={13} color="#EF4444" />
+                <Text style={styles.headerCancelBtnText}>{isHost ? 'Avbryt' : 'Lämna'}</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.mapToggleBtn} onPress={onClose} activeOpacity={0.8}>
+              <FontAwesome6 name="map-location-dot" size={15} color="#0F4C5C" />
+              <Text style={styles.mapToggleBtnText}>Karta</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Progress & Info */}
@@ -390,6 +406,19 @@ export default function BingoGridModal({
               );
             })}
           </View>
+
+          {onCancelGame && (
+            <TouchableOpacity
+              style={styles.cancelGameBtn}
+              onPress={onCancelGame}
+              activeOpacity={0.8}
+            >
+              <FontAwesome6 name="circle-xmark" size={15} color="#DC2626" />
+              <Text style={styles.cancelGameBtnText}>
+                {isHost ? 'Avbryt tävlingen (skapare)' : 'Lämna tävlingen'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
 
         {/* Flytande snabbknapp till kartan */}
@@ -437,6 +466,41 @@ const styles = StyleSheet.create({
   headerLeft: {
     flex: 1,
     marginRight: 10,
+  },
+  headerCancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+  },
+  headerCancelBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  cancelGameBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    marginBottom: 40,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  cancelGameBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626',
   },
   mapToggleBtn: {
     flexDirection: 'row',

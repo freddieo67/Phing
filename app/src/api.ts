@@ -230,6 +230,9 @@ export const api = {
   startGame: (gameId: number, hostId: number) =>
     apiPost<{ ok: boolean; starts_at: string; expires_at: string }>(`/games/${gameId}/start`, { host_id: hostId }),
 
+  cancelGame: (gameId: number, userId: number) =>
+    apiPost<{ ok: boolean; cancelled?: boolean; left?: boolean }>(`/games/${gameId}/cancel`, { user_id: userId }),
+
   submitGamePhing: (gameId: number, body: {
     user_id: number;
     tile_index: number;

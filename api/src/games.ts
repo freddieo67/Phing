@@ -315,6 +315,41 @@ gamesRouter.post('/:id/start', async (req, res) => {
   }
 });
 
+// Avbryt eller lämna spel
+gamesRouter.post('/:id/cancel', async (req, res) => {
+  const gameId = parseId(req.params.id);
+  const userId = parseId(req.body.user_id);
+
+  if (!gameId || !userId) {
+    return res.status(400).json({ error: 'gameId and user_id required' });
+  }
+
+  try {
+    const gameRes = await pool.query(`SELECT * FROM public.games WHERE id = $1`, [gameId]);
+    if (gameRes.rowCount === 0) return res.status(404).json({ error: 'Spel finns inte' });
+    const game = gameRes.rows[0];
+
+    if (game.host_id === userId) {
+      // Värden avbryter spelet för alla
+      await pool.query(
+        `UPDATE public.games SET status = 'cancelled' WHERE id = $1`,
+        [gameId]
+      );
+      return res.json({ ok: true, cancelled: true, message: 'Spelet har avbrutits' });
+    } else {
+      // Deltagare lämnar spelet
+      await pool.query(
+        `UPDATE public.game_participants SET status = 'declined' WHERE game_id = $1 AND user_id = $2`,
+        [gameId, userId]
+      );
+      return res.json({ ok: true, left: true, message: 'Du har lämnat spelet' });
+    }
+  } catch (err) {
+    console.error('Fel vid avbrytande av spel:', err);
+    res.status(500).json({ error: 'Kunde inte avbryta spelet' });
+  }
+});
+
 // Uppdatera spelarens live-position i spelet (för radarn med färgade ringar)
 gamesRouter.post('/:id/location', async (req, res) => {
   const gameId = parseId(req.params.id);

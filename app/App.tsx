@@ -240,6 +240,36 @@ export default function App() {
     }
   }, [activeGame, user, location, gameItems]);
 
+  const handleCancelGame = useCallback(() => {
+    if (!activeGame || !user) return;
+    const isHost = activeGame.host_id === user.id;
+
+    Alert.alert(
+      isHost ? 'Avbryt tävling' : 'Lämna tävling',
+      isHost
+        ? `Vill du avbryta "${activeGame.title}"? Tävlingen avslutas då omedelbart för alla deltagare.`
+        : `Vill du lämna "${activeGame.title}"?`,
+      [
+        { text: 'Nej, behåll', style: 'cancel' },
+        {
+          text: isHost ? 'Ja, avbryt' : 'Ja, lämna',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.cancelGame(activeGame.id, user.id);
+              setActiveGame(null);
+              setBingoGridVisible(false);
+              setGameReviewVisible(false);
+              if (refreshRef.current) refreshRef.current();
+            } catch (e) {
+              Alert.alert(i18n.t('error'), 'Kunde inte avbryta tävlingen.');
+            }
+          },
+        },
+      ]
+    );
+  }, [activeGame, user]);
+
   const [locale, setLocale] = useState(() => i18n.locale);
 
   // Synka språket direkt om telefonens systemspråk ändras när appen återupptas
@@ -1266,6 +1296,13 @@ export default function App() {
                 <FontAwesome6 name="images" size={13} color="#FFFFFF" />
                 <Text style={styles.activeGameBtnText}>{gamePhings.length}</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.activeGameBtn, { backgroundColor: 'rgba(239, 68, 68, 0.45)' }]}
+                onPress={handleCancelGame}
+                activeOpacity={0.8}
+              >
+                <FontAwesome6 name="xmark" size={13} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1677,6 +1714,7 @@ export default function App() {
         onClose={() => setBingoGridVisible(false)}
         onSubmitTile={handleTileSubmit}
         onViewPhing={() => setGameReviewVisible(true)}
+        onCancelGame={handleCancelGame}
       />
 
       <GameReviewModal
