@@ -70,7 +70,7 @@ export default function GameReviewModal({
                           {phing.user_name || 'Spelare'} {isMine && '(Du)'}
                           {phing.team_name ? ` • ${phing.team_name}` : ''}
                         </Text>
-                        <Text style={styles.tileTarget}>{emoji} {label}</Text>
+                        <Text style={styles.tileTarget}>{label}</Text>
                       </View>
                     </View>
                     <View style={styles.approvedBadge}>

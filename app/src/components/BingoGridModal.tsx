@@ -34,9 +34,9 @@ interface BingoGridModalProps {
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const GRID_PADDING = 16;
-const TILE_GAP = 10;
-// Exakt 3 kolumner: (bredd - marginaler - gap) / 3
+const GRID_PADDING = 12;
+const TILE_GAP = 8;
+// Exakt 3 kolumner: 1:1 kvadratiska rutor med tajt mellanrum och rundade hörn
 const TILE_WIDTH = Math.floor((SCREEN_WIDTH - GRID_PADDING * 2 - TILE_GAP * 2) / 3);
 
 export default function BingoGridModal({
@@ -172,7 +172,6 @@ export default function BingoGridModal({
 
     const item = items.find(it => it.tile_index === index);
     const label = item?.label || `Mål ${index + 1}`;
-    const emoji = item?.emoji || '🎯';
     const hint = item?.hint;
 
     const startCamera = async () => {
@@ -211,11 +210,11 @@ export default function BingoGridModal({
 
     if (hint) {
       Alert.alert(
-        `${emoji} ${label}`,
+        label,
         hint,
         [
           { text: 'Avbryt', style: 'cancel' },
-          { text: '📸 Ta foto', onPress: startCamera },
+          { text: 'Ta foto', onPress: startCamera },
         ]
       );
     } else {
@@ -322,13 +321,10 @@ export default function BingoGridModal({
                   <TouchableOpacity
                     key={`tile-${index}`}
                     style={[styles.tile, styles.tileCompleted]}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                     onPress={() => handleTilePress(index)}
                   >
                     <Image source={{ uri: myClaimedPhing.photo_thumb }} style={styles.tileImage} />
-                    <View style={styles.tileCheckmarkBadge}>
-                      <FontAwesome6 name="check" size={14} color="#FFFFFF" />
-                    </View>
                     <View style={styles.tileOverlay}>
                       <Text style={styles.tileCompletedLabel} numberOfLines={1}>{label}</Text>
                     </View>
@@ -343,16 +339,13 @@ export default function BingoGridModal({
                   <TouchableOpacity
                     key={`tile-${index}`}
                     style={[styles.tile, styles.tileBlocked, { borderColor: ownerColor }]}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                     onPress={() => handleTilePress(index)}
                   >
-                    <Image source={{ uri: opponentClaimedPhing.photo_thumb }} style={[styles.tileImage, { opacity: 0.65 }]} />
-                    <View style={[styles.tileLockBadge, { backgroundColor: ownerColor }]}>
-                      <FontAwesome6 name="lock" size={12} color="#FFFFFF" />
-                    </View>
-                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.75)' }]}>
+                    <Image source={{ uri: opponentClaimedPhing.photo_thumb }} style={[styles.tileImage, { opacity: 0.6 }]} />
+                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.8)' }]}>
                       <Text style={styles.tileBlockedLabel} numberOfLines={1}>
-                        🔒 {ownerName}
+                        {ownerName}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -365,16 +358,13 @@ export default function BingoGridModal({
                   <TouchableOpacity
                     key={`tile-${index}`}
                     style={[styles.tile, styles.tileQueued]}
-                    activeOpacity={0.8}
+                    activeOpacity={0.85}
                     onPress={() => handleTilePress(index)}
                   >
-                    <Image source={{ uri: queuedPhing.photoThumb }} style={[styles.tileImage, { opacity: 0.85 }]} />
-                    <View style={styles.tileQueuedBadge}>
-                      <FontAwesome6 name="tower-broadcast" size={11} color="#FFFFFF" />
-                    </View>
-                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(217, 119, 6, 0.92)' }]}>
+                    <Image source={{ uri: queuedPhing.photoThumb }} style={[styles.tileImage, { opacity: 0.7 }]} />
+                    <View style={[styles.tileOverlay, { backgroundColor: 'rgba(217, 119, 6, 0.9)' }]}>
                       <Text style={styles.tileQueuedLabel} numberOfLines={1}>
-                        📡 Sparad offline
+                        Sparad offline
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -385,22 +375,18 @@ export default function BingoGridModal({
                 <TouchableOpacity
                   key={`tile-${index}`}
                   style={[styles.tile, styles.tileEmpty]}
-                  activeOpacity={0.8}
+                  activeOpacity={0.75}
                   onPress={() => handleTilePress(index)}
                   disabled={capturing}
                 >
                   <View style={styles.tileInner}>
-                    <View style={styles.tileNumberBadge}>
-                      <Text style={styles.tileNumberText}>{index + 1}</Text>
-                    </View>
                     {isProcessingThis ? (
-                      <ActivityIndicator size="small" color="#0F4C5C" />
-                    ) : item?.emoji ? (
-                      <Text style={styles.tileEmoji}>{item.emoji}</Text>
+                      <ActivityIndicator size="small" color="#18181B" />
                     ) : (
-                      <FontAwesome6 name="camera" size={24} color="#0F4C5C" style={{ opacity: 0.6 }} />
+                      <Text style={styles.tileLabel} numberOfLines={3}>
+                        {label}
+                      </Text>
                     )}
-                    <Text style={styles.tileLabel} numberOfLines={2}>{label}</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -462,7 +448,7 @@ export default function BingoGridModal({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#0A0A0C', // Djup mörk bakgrund
     paddingTop: Platform.OS === 'ios' ? 50 : 20,
   },
   header: {
@@ -472,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#1A1A1E',
   },
   headerLeft: {
     flex: 1,
@@ -482,17 +468,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
     borderWidth: 1,
-    borderColor: '#FECACA',
-    paddingHorizontal: 10,
+    borderColor: 'rgba(239, 68, 68, 0.35)',
+    paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
   },
   headerCancelBtnText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#EF4444',
   },
   cancelGameBtn: {
     flexDirection: 'row',
@@ -500,34 +486,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginTop: 24,
-    marginBottom: 40,
-    paddingVertical: 13,
+    marginBottom: 50,
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: '#FEE2E2',
+    borderRadius: 16,
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   cancelGameBtnText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#DC2626',
+    color: '#F87171',
   },
   mapToggleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#E8F4F6',
+    backgroundColor: '#1E293B',
     borderWidth: 1,
-    borderColor: '#BEE3E8',
-    paddingHorizontal: 12,
+    borderColor: '#334155',
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
   mapToggleBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F4C5C',
+    color: '#F1F5F9',
   },
   floatingFooter: {
     position: 'absolute',
@@ -538,7 +524,9 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   bottomSwitchBtn: {
-    backgroundColor: '#0F4C5C',
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -546,33 +534,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
     elevation: 8,
   },
   bottomSwitchBtnText: {
-    color: '#FFFFFF',
+    color: '#F8FAFC',
     fontWeight: '700',
     fontSize: 14,
   },
   title: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
-    color: '#111827',
+    color: '#F3F4F6',
   },
   gridBadge: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#9CA3AF',
     marginTop: 2,
     fontWeight: '500',
   },
   progressContainer: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#131316',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#1F1F24',
   },
   progressRow: {
     flexDirection: 'row',
@@ -582,15 +570,15 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 14,
-    color: '#374151',
+    color: '#D1D5DB',
   },
   progressBold: {
     fontWeight: '700',
-    color: '#0F4C5C',
+    color: '#10B981',
   },
   statusText: {
     fontSize: 13,
-    color: '#059669',
+    color: '#10B981',
     fontWeight: '600',
   },
   bingoBadge: {
@@ -606,18 +594,18 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     height: 6,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#27272A',
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#0F4C5C',
+    backgroundColor: '#10B981',
     borderRadius: 3,
   },
   scrollContent: {
     padding: GRID_PADDING,
-    paddingBottom: 40,
+    paddingBottom: 70,
   },
   grid: {
     flexDirection: 'row',
@@ -628,42 +616,74 @@ const styles = StyleSheet.create({
   tile: {
     width: TILE_WIDTH,
     height: TILE_WIDTH,
-    borderRadius: 12,
+    borderRadius: 20, // Rundade hörn
     overflow: 'hidden',
     position: 'relative',
   },
   tileEmpty: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    borderStyle: 'dashed',
+    backgroundColor: '#EDEDED', // Offwhite i rutan
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   tileCompleted: {
     backgroundColor: '#000000',
-    borderWidth: 2,
-    borderColor: '#10B981',
+    borderRadius: 20,
+    overflow: 'hidden',
   },
   tileBlocked: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#18181B',
+    borderRadius: 20,
     borderWidth: 2,
+    overflow: 'hidden',
   },
   tileQueued: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#27272A',
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: '#D97706',
+    overflow: 'hidden',
   },
-  tileQueuedBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#D97706',
+  tileInner: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    width: '100%',
+  },
+  tileLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#18181B', // Tydlig mörk text mot offwhite
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  tileImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  tileOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  tileCompletedLabel: {
+    color: '#F4F4F6', // Offwhite/vit text
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  tileBlockedLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   tileQueuedLabel: {
     color: '#FFFFFF',
@@ -686,10 +706,10 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#18181B',
   },
   myTeamBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#27272A',
   },
   teamDot: {
     width: 8,
@@ -698,7 +718,7 @@ const styles = StyleSheet.create({
   },
   teamName: {
     fontSize: 12,
-    color: '#374151',
+    color: '#E4E4E7',
     fontWeight: '600',
   },
   teamScore: {
@@ -706,103 +726,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   modeBadge: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#451A03',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
   },
   modeBadgeText: {
     fontSize: 11,
-    color: '#92400E',
+    color: '#FDE68A',
     fontWeight: '700',
-  },
-  tileLockBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  tileBlockedLabel: {
-    color: '#FFFFFF',
-    fontSize: 9.5,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  tileInner: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 6,
-  },
-  tileNumberBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: '#F3F4F6',
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tileNumberText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#6B7280',
-  },
-  tileEmoji: {
-    fontSize: 24,
-    marginBottom: 2,
-  },
-  tileLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
-    textAlign: 'center',
-    marginTop: 6,
-  },
-  tileImage: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
-  tileCheckmarkBadge: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#10B981',
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-  },
-  tileOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingVertical: 3,
-    paddingHorizontal: 4,
-  },
-  tileCompletedLabel: {
-    color: '#FFFFFF',
-    fontSize: 10,
-    fontWeight: '600',
-    textAlign: 'center',
   },
   previewBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
@@ -810,18 +746,18 @@ const styles = StyleSheet.create({
   previewCard: {
     width: '100%',
     maxHeight: '80%',
-    backgroundColor: '#1F2937',
-    borderRadius: 16,
+    backgroundColor: '#18181B',
+    borderRadius: 20,
     padding: 16,
     alignItems: 'center',
   },
   previewImage: {
     width: '100%',
     height: 350,
-    borderRadius: 12,
+    borderRadius: 16,
   },
   previewLabel: {
-    color: '#FFFFFF',
+    color: '#F4F4F6',
     fontSize: 16,
     fontWeight: '700',
     marginTop: 12,
@@ -829,44 +765,41 @@ const styles = StyleSheet.create({
   },
   previewCloseBtn: {
     marginTop: 16,
-    backgroundColor: '#0F4C5C',
+    backgroundColor: '#27272A',
     paddingVertical: 10,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 12,
   },
   previewCloseText: {
-    color: '#FFFFFF',
+    color: '#F4F4F6',
     fontWeight: '700',
     fontSize: 14,
   },
   aiLoadingOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
   },
   aiLoadingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#18181B',
+    borderRadius: 20,
     paddingVertical: 24,
     paddingHorizontal: 28,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#27272A',
   },
   aiLoadingTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#0F4C5C',
+    color: '#F4F4F6',
     marginTop: 14,
   },
   aiLoadingSubtitle: {
     fontSize: 13,
-    color: '#64748B',
+    color: '#A1A1AA',
     marginTop: 6,
     fontWeight: '500',
   },
