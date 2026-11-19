@@ -17,6 +17,7 @@ import BingoGridModal from './src/components/BingoGridModal';
 import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
 import IconPickerModal from './src/components/IconPickerModal';
+import GameInviteModal from './src/components/GameInviteModal';
 import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam, GameParticipant } from './src/api';
 import { getQueuedPhings, enqueuePhing, flushOfflineQueue, QueuedPhing } from './src/offlineQueue';
 import { ApiError } from './src/config';
@@ -58,6 +59,9 @@ export default function App() {
   const [gameLobbyVisible, setGameLobbyVisible] = useState(false);
   const [bingoGridVisible, setBingoGridVisible] = useState(false);
   const [gameReviewVisible, setGameReviewVisible] = useState(false);
+  const [pendingGameInvite, setPendingGameInvite] = useState<Game | null>(null);
+  const [isRespondingGameInvite, setIsRespondingGameInvite] = useState(false);
+  const declinedGameIds = useRef<Set<number>>(new Set());
   const [iconPickerVisible, setIconPickerVisible] = useState(false);
   const [gameInvitedContacts, setGameInvitedContacts] = useState<AppContact[]>([]);
   const [pingModalVisible, setPingModalVisible] = useState(false);
@@ -281,6 +285,43 @@ export default function App() {
       ]
     );
   }, [activeGame, user]);
+
+  const handleAcceptGameInvite = useCallback(async (game: Game) => {
+    if (!user) return;
+    setIsRespondingGameInvite(true);
+    try {
+      await api.respondToGame(game.id, user.id, true);
+      setPendingGameInvite(null);
+      const details = await api.getGameDetails(game.id);
+      setActiveGame(details.game);
+      setGameTeams(details.teams || []);
+      setGameParticipants(details.participants || []);
+      setGameItems(details.items);
+      setGamePhings(details.phings);
+      setBingoGridVisible(true);
+      if (refreshRef.current) refreshRef.current();
+    } catch (e) {
+      Alert.alert(i18n.t('error'), 'Kunde inte gå med i spelet.');
+    } finally {
+      setIsRespondingGameInvite(false);
+    }
+  }, [user]);
+
+  const handleDeclineGameInvite = useCallback(async (game: Game) => {
+    if (!user) return;
+    setIsRespondingGameInvite(true);
+    try {
+      declinedGameIds.current.add(game.id);
+      await api.respondToGame(game.id, user.id, false);
+      setPendingGameInvite(null);
+      if (refreshRef.current) refreshRef.current();
+    } catch (e) {
+      declinedGameIds.current.delete(game.id);
+      Alert.alert(i18n.t('error'), 'Kunde inte avböja inbjudan.');
+    } finally {
+      setIsRespondingGameInvite(false);
+    }
+  }, [user]);
 
   const [locale, setLocale] = useState(() => i18n.locale);
 
@@ -599,7 +640,24 @@ export default function App() {
       try {
         const games = await api.getUserGames(user.id);
         if (!active) return;
-        const current = games.find(g => g.status === 'active' || g.status === 'lobby');
+
+        // Inkommande matchinbjudan som väntar på svar (bara om man inte redan tackat nej eller är inne i spelet)
+        const pendingInvite = games.find(
+          g => (g.status === 'active' || g.status === 'lobby') &&
+               g.participant_status === 'invited' &&
+               !declinedGameIds.current.has(g.id)
+        );
+        if (pendingInvite) {
+          setPendingGameInvite(pendingInvite);
+        } else if (pendingGameInvite && !games.some(g => g.id === pendingGameInvite.id && g.status !== 'cancelled')) {
+          setPendingGameInvite(null);
+        }
+
+        // Aktiv match sätts BARA om användaren själv är värd eller har accepterat inbjudan!
+        const current = games.find(
+          g => (g.status === 'active' || g.status === 'lobby') &&
+               (g.participant_status === 'accepted' || g.host_id === user.id)
+        );
         if (current) {
           const details = await api.getGameDetails(current.id);
           if (!active) return;
@@ -1727,6 +1785,13 @@ export default function App() {
           saveMapIcon(emoji);
         }}
         onClose={() => setIconPickerVisible(false)}
+      />
+
+      <GameInviteModal
+        game={pendingGameInvite}
+        loading={isRespondingGameInvite}
+        onAccept={handleAcceptGameInvite}
+        onDecline={handleDeclineGameInvite}
       />
 
       <BingoGridModal

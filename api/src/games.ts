@@ -158,7 +158,7 @@ gamesRouter.get('/user/:userId', async (req, res) => {
        JOIN public.game_participants gp ON gp.game_id = g.id AND gp.user_id = $1
        LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
        JOIN public.users u ON u.id = g.host_id
-       WHERE g.status IN ('lobby', 'active') OR g.expires_at >= NOW() - INTERVAL '1 day'
+       WHERE ((g.status IN ('lobby', 'active') AND gp.status != 'declined') OR g.expires_at >= NOW() - INTERVAL '1 day')
        ORDER BY g.created_at DESC`,
       [userId]
     );
