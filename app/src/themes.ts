@@ -1,7 +1,7 @@
 export interface ThemeItem {
-  title: string; // Kortnamn som visas på spelbrickan (1-2 ord)
-  hint: string;  // Fullständig ledtråd/beskrivning vid tryck
-  icon: string;  // Emoji som visas i rutan
+  title: string;  // Kortnamn som visas på spelbrickan (1-2 ord)
+  hint?: string;  // Valfri beskrivning (om tom öppnas kameran direkt vid klick)
+  icon: string;   // Emoji/flagga som visas i rutan
 }
 
 export interface ThemeCategory {
@@ -14,12 +14,12 @@ export interface ThemeCategory {
 
 export const THEME_CATEGORIES: ThemeCategory[] = [
   // =========================================================================
-  // 1. STAD & TRAFIK (Allt blandat: stadsmiljö, detaljer och vanliga fordon)
+  // 1. STAD & TRAFIK (Allt blandat: stadsmiljö, detaljer och vardagliga fordon)
   // =========================================================================
   {
     id: 'city',
     name: 'Stad & Trafik',
-    description: 'En härlig mix av stadsmiljö, prylar, butiker, folk och fordon!',
+    description: 'En härlig mix av stadsmiljö, detaljer, butiker, folk och fordon!',
     icon: '🏙️',
     items: [
       // --- Stadsmiljö & gator ---
@@ -85,7 +85,7 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
       { title: 'Väntande hund', hint: 'Hund som sitter kopplad utanför en butik och väntar', icon: '🐶' },
       { title: 'Krittavla', hint: 'Handskriven meny eller skylt på griffeltavla', icon: '📋' },
 
-      // --- Inmixade realistiska fordon ---
+      // --- Inmixade fordon ---
       { title: 'Stadsbuss', hint: 'Kollektivtrafikbuss i trafik eller vid hållplats', icon: '🚌' },
       { title: 'Vit skåpbil', hint: 'Hantverkarbil eller transportbil', icon: '🚐' },
       { title: 'Röd personbil', hint: 'Röd personbil i rörelse eller parkerad', icon: '🚗' },
@@ -121,54 +121,144 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
   },
 
   // =========================================================================
-  // 2. BILMODELLER (Sveriges vanligaste och roligaste bilmärken & modeller)
+  // 2. BIL- & MC-MODELLER (Enskilda modeller utan beskrivningar – direktfoto!)
   // =========================================================================
   {
-    id: 'car_models',
-    name: 'Bilmodeller & Märken',
-    description: 'Håll utkik efter specifika bilmärken, modeller och klassiker!',
+    id: 'vehicles_models',
+    name: 'Bil- & MC-modeller',
+    description: 'Över 110 enskilda modeller – massor av svenska favoriter och MC!',
     icon: '🏎️',
     items: [
-      { title: 'Volvo V60 / V90', hint: 'Modern svensk kombi med Tors hammare-lyktor', icon: '🇸🇪' },
-      { title: 'Volvo V70', hint: 'Sveriges mest älskade folkhemskombi från 00-/10-talet', icon: '🇸🇪' },
-      { title: 'Volvo XC60', hint: 'Sveriges mest populära mellanklass-SUV', icon: '🇸🇪' },
-      { title: 'Volvo XC40', hint: 'Kompakt svensk crossover eller elbil', icon: '🇸🇪' },
-      { title: 'Volvo 240 / 740', hint: 'Svensk odödlig tegelsten med bakhjulsdrift', icon: '🇸🇪' },
-      { title: 'Tesla Model Y', hint: 'Sveriges mest sålda el-SUV utan frontgrill', icon: '⚡' },
-      { title: 'Tesla Model 3', hint: 'Låg eldriven fyrsitsig sedan från Tesla', icon: '⚡' },
-      { title: 'VW Golf', hint: 'Klassisk Volkswagen Golf i valfri generation', icon: '🇩🇪' },
-      { title: 'VW Passat', hint: 'Klassisk tysk tjänstebilskombi', icon: '🇩🇪' },
-      { title: 'VW Tiguan', hint: 'Mellanstor tysk familje-SUV från Volkswagen', icon: '🇩🇪' },
-      { title: 'VW Bubbla', hint: 'Luftkyld klassisk Volkswagen Typ 1 ("Bubblan")', icon: '🐞' },
-      { title: 'Toyota Yaris / Corolla', hint: 'Japansk hybridstorsäljare med Toyota-emblemet', icon: '🇯🇵' },
-      { title: 'Toyota RAV4', hint: 'Fyrhjulsdriven robust hybrid-SUV från Toyota', icon: '🇯🇵' },
-      { title: 'Toyota Hilux', hint: 'Oslagbar slitstark pickup med öppet flak', icon: '🛻' },
-      { title: 'Kia Ceed / Niro', hint: 'Vanlig koreansk kombi eller crossover', icon: '🇰🇷' },
-      { title: 'Kia EV6', hint: 'Futuristisk crossover på modern 800V-plattform', icon: '⚡' },
-      { title: 'Skoda Octavia', hint: 'Praktisk tjeckisk kombi med den bevingade pilen', icon: '🇨🇿' },
-      { title: 'Ford Focus / Fiesta', hint: 'Kompakt Ford med den blå ovalen i grillen', icon: '🇺🇸' },
-      { title: 'Ford Mustang', hint: 'Amerikansk ponnybil med hästen i grillen', icon: '🐎' },
-      { title: 'Ford Transit', hint: 'Vit eller färgad transportskåpbil', icon: '🚐' },
-      { title: 'BMW 3-serie', hint: 'Bavarian sedan eller touring med klassisk njurgrill', icon: '🇩🇪' },
-      { title: 'BMW 5-serie', hint: 'Klassisk tysk premiumbil i sedan- el herrgårdsvagnsutförande', icon: '🇩🇪' },
-      { title: 'Audi A4 / A6', hint: 'Audi kombi med de fyra sammankopplade ringarna', icon: '🇩🇪' },
-      { title: 'Mercedes C-klass', hint: 'Mercedes sedan eller kombi med stjärnan', icon: '🇩🇪' },
-      { title: 'Mercedes E-klass', hint: 'Klassisk tysk taxisedan eller kombi med stjärnan', icon: '🇩🇪' },
-      { title: 'Polestar 2', hint: 'Svensk eldriven fastback med Polestar-stjärna', icon: '⚡' },
-      { title: 'Saab 900 / 9-3', hint: 'Trollhätte-ikon med flyginspirerad vindruta', icon: '🇸🇪' },
-      { title: 'Porsche Macan / Cayenne', hint: 'Sport-SUV från Stuttgart med Porsche-vapen', icon: '🇩🇪' },
-      { title: 'Porsche 911', hint: 'Klassisk svansmotor-ikon med runda grodögon', icon: '🇩🇪' },
-      { title: 'Mini Cooper', hint: 'Modern brittisk ikon med runt formspråk', icon: '🇬🇧' },
-      { title: 'Jeep Wrangler', hint: 'Klassisk amerikansk terrängbil med 7 ribbor i grillen', icon: '🇺🇸' },
-      { title: 'Dacia Duster', hint: 'Prisvärd fyrhjulsdriven SUV', icon: '🇷🇴' },
-      { title: 'Nissan Qashqai', hint: 'Pionjären bland kompakta japanska crossovers', icon: '🇯🇵' },
-      { title: 'Peugeot 208 / 308', hint: 'Fransk bil med lejonemblemet i nosen', icon: '🇫🇷' },
-      { title: 'Renault Clio', hint: 'Fransk småbil med den kromade romben i nosen', icon: '🇫🇷' },
-      { title: 'Mazda MX-5 Miata', hint: 'Världens mest sålda tvåsitsiga sportbil', icon: '🇯🇵' },
-      { title: 'Jänkare / Raggarbil', hint: 'Amerikansk 50-/60-tals klassiker med mullrande V8', icon: '🇺🇸' },
-      { title: 'Subaru Outback', hint: 'Boxermotor och permanent symmetrisk fyrhjulsdrift', icon: '🇯🇵' },
-      { title: 'Dodge RAM / Silverado', hint: 'Enorm amerikansk fullsize V8-pickup', icon: '🛻' },
-      { title: 'Fiat 500', hint: 'Kompakt italiensk retro-småbil', icon: '🇮🇹' },
+      // --- Svenska bilar: Volvo ---
+      { title: 'Volvo 240', icon: '🇸🇪' },
+      { title: 'Volvo 740', icon: '🇸🇪' },
+      { title: 'Volvo 940', icon: '🇸🇪' },
+      { title: 'Volvo 850', icon: '🇸🇪' },
+      { title: 'Volvo V70', icon: '🇸🇪' },
+      { title: 'Volvo V60', icon: '🇸🇪' },
+      { title: 'Volvo XC60', icon: '🇸🇪' },
+      { title: 'Volvo XC40', icon: '🇸🇪' },
+      { title: 'Volvo XC90', icon: '🇸🇪' },
+      { title: 'Volvo V40', icon: '🇸🇪' },
+      { title: 'Volvo V90', icon: '🇸🇪' },
+      { title: 'Volvo S60', icon: '🇸🇪' },
+      { title: 'Volvo S80', icon: '🇸🇪' },
+      { title: 'Volvo C30', icon: '🇸🇪' },
+      { title: 'Volvo Amazon', icon: '🇸🇪' },
+      { title: 'Volvo PV 544', icon: '🇸🇪' },
+      { title: 'Volvo Duett', icon: '🇸🇪' },
+
+      // --- Svenska bilar: Saab ---
+      { title: 'Saab 900', icon: '🇸🇪' },
+      { title: 'Saab 9000', icon: '🇸🇪' },
+      { title: 'Saab 9-3', icon: '🇸🇪' },
+      { title: 'Saab 9-5', icon: '🇸🇪' },
+      { title: 'Saab 99', icon: '🇸🇪' },
+      { title: 'Saab 96', icon: '🇸🇪' },
+
+      // --- Svenska bilar: Polestar ---
+      { title: 'Polestar 2', icon: '⚡' },
+      { title: 'Polestar 3', icon: '⚡' },
+      { title: 'Polestar 4', icon: '⚡' },
+
+      // --- Svenska MC & mopeder ---
+      { title: 'Husqvarna Svartpilen', icon: '🇸🇪' },
+      { title: 'Husqvarna Vitpilen', icon: '🇸🇪' },
+      { title: 'Husqvarna 701', icon: '🇸🇪' },
+      { title: 'Crescent Compact', icon: '🇸🇪' },
+      { title: 'Puch Dakota', icon: '🛵' },
+
+      // --- Tesla & Elbilar ---
+      { title: 'Tesla Model Y', icon: '⚡' },
+      { title: 'Tesla Model 3', icon: '⚡' },
+      { title: 'Tesla Model S', icon: '⚡' },
+      { title: 'Tesla Model X', icon: '⚡' },
+      { title: 'VW ID.4', icon: '⚡' },
+      { title: 'VW ID.3', icon: '⚡' },
+      { title: 'Kia EV6', icon: '⚡' },
+      { title: 'Hyundai Ioniq 5', icon: '⚡' },
+
+      // --- Volkswagen & Skoda ---
+      { title: 'VW Golf', icon: '🇩🇪' },
+      { title: 'VW Passat', icon: '🇩🇪' },
+      { title: 'VW Tiguan', icon: '🇩🇪' },
+      { title: 'VW Polo', icon: '🇩🇪' },
+      { title: 'VW Caddy', icon: '🚐' },
+      { title: 'VW Transporter', icon: '🚐' },
+      { title: 'VW Bubbla', icon: '🐞' },
+      { title: 'Skoda Octavia', icon: '🇨🇿' },
+      { title: 'Skoda Fabia', icon: '🇨🇿' },
+      { title: 'Skoda Kodiaq', icon: '🇨🇿' },
+      { title: 'Skoda Superb', icon: '🇨🇿' },
+
+      // --- Toyota, Kia & Hyundai ---
+      { title: 'Toyota RAV4', icon: '🇯🇵' },
+      { title: 'Toyota Yaris', icon: '🇯🇵' },
+      { title: 'Toyota Corolla', icon: '🇯🇵' },
+      { title: 'Toyota Hilux', icon: '🛻' },
+      { title: 'Toyota C-HR', icon: '🇯🇵' },
+      { title: 'Kia Ceed', icon: '🇰🇷' },
+      { title: 'Kia Niro', icon: '🇰🇷' },
+      { title: 'Kia Sportage', icon: '🇰🇷' },
+      { title: 'Hyundai Tucson', icon: '🇰🇷' },
+
+      // --- BMW, Audi, Mercedes & Porsche ---
+      { title: 'BMW 3-serie', icon: '🇩🇪' },
+      { title: 'BMW 5-serie', icon: '🇩🇪' },
+      { title: 'BMW 1-serie', icon: '🇩🇪' },
+      { title: 'BMW X3', icon: '🇩🇪' },
+      { title: 'BMW X5', icon: '🇩🇪' },
+      { title: 'Audi A4', icon: '🇩🇪' },
+      { title: 'Audi A6', icon: '🇩🇪' },
+      { title: 'Audi A3', icon: '🇩🇪' },
+      { title: 'Audi Q5', icon: '🇩🇪' },
+      { title: 'Mercedes C-klass', icon: '🇩🇪' },
+      { title: 'Mercedes E-klass', icon: '🇩🇪' },
+      { title: 'Mercedes A-klass', icon: '🇩🇪' },
+      { title: 'Mercedes GLC', icon: '🇩🇪' },
+      { title: 'Porsche 911', icon: '🇩🇪' },
+      { title: 'Porsche Macan', icon: '🇩🇪' },
+      { title: 'Porsche Cayenne', icon: '🇩🇪' },
+
+      // --- Övriga kända personbilar ---
+      { title: 'Ford Mustang', icon: '🐎' },
+      { title: 'Ford Focus', icon: '🇺🇸' },
+      { title: 'Ford Transit', icon: '🚐' },
+      { title: 'Mini Cooper', icon: '🇬🇧' },
+      { title: 'Peugeot 208', icon: '🇫🇷' },
+      { title: 'Renault Clio', icon: '🇫🇷' },
+      { title: 'Fiat 500', icon: '🇮🇹' },
+      { title: 'Jeep Wrangler', icon: '🇺🇸' },
+      { title: 'Dacia Duster', icon: '🇷🇴' },
+      { title: 'Mazda CX-5', icon: '🇯🇵' },
+      { title: 'Mazda MX-5 Miata', icon: '🇯🇵' },
+      { title: 'Subaru Outback', icon: '🇯🇵' },
+      { title: 'Nissan Qashqai', icon: '🇯🇵' },
+
+      // --- Motorcyklar & Scooters ---
+      { title: 'BMW R 1250 GS', icon: '🏍️' },
+      { title: 'Honda Africa Twin', icon: '🏍️' },
+      { title: 'Yamaha Ténéré 700', icon: '🏍️' },
+      { title: 'Suzuki V-Strom 650', icon: '🏍️' },
+      { title: 'KTM 890 Adventure', icon: '🏍️' },
+      { title: 'Honda Goldwing', icon: '🏍️' },
+      { title: 'Yamaha MT-07', icon: '🏍️' },
+      { title: 'Yamaha MT-09', icon: '🏍️' },
+      { title: 'KTM 390 Duke', icon: '🏍️' },
+      { title: 'Kawasaki Z900', icon: '🏍️' },
+      { title: 'Honda CB650R', icon: '🏍️' },
+      { title: 'Ducati Monster', icon: '🏍️' },
+      { title: 'Triumph Street Triple', icon: '🏍️' },
+      { title: 'Harley Sportster', icon: '🇺🇸' },
+      { title: 'Harley Fat Boy', icon: '🇺🇸' },
+      { title: 'Harley Street Glide', icon: '🇺🇸' },
+      { title: 'Honda Rebel 500', icon: '🏍️' },
+      { title: 'Kawasaki Ninja', icon: '🏍️' },
+      { title: 'Yamaha YZF-R1', icon: '🏍️' },
+      { title: 'Honda CBR1000RR', icon: '🏍️' },
+      { title: 'BMW S 1000 RR', icon: '🏍️' },
+      { title: 'Triumph Bonneville', icon: '🇬🇧' },
+      { title: 'Vespa Primavera', icon: '🛵' },
     ],
   },
 ];
