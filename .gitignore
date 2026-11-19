@@ -4,4 +4,6 @@ node_modules/
 android/
 ios/
 *.ips
+.gradle/
+app/.gradle/
 
