@@ -475,7 +475,8 @@ gamesRouter.post('/:id/phings', async (req, res) => {
     } catch (aiErr: any) {
       console.error('AI verification failed:', aiErr);
       await client.query('ROLLBACK');
-      return res.status(500).json({ error: 'Kunde inte analysera bilden med AI. Försök igen.' });
+      const msg = aiErr?.message || 'Kunde inte analysera bilden med AI.';
+      return res.status(500).json({ error: `AI-fel: ${msg}` });
     }
 
     if (!aiResult.approved) {
