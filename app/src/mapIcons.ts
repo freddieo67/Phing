@@ -57,3 +57,10 @@ export async function saveMapIcon(emoji: MapIconEmoji): Promise<void> {
     console.warn('Kunde inte spara kartikon:', e);
   }
 }
+
+const DEFAULT_POOL = ['🦊', '🐯', '🦁', '🐺', '🐻', '🐼', '🐨', '🦅', '🦉', '🐸', '🐵', '🐙', '🚀', '🏎️', '⚡', '🎯'];
+
+export function getDefaultIconForUserId(userId?: number | null): string {
+  if (!userId) return '🦊';
+  return DEFAULT_POOL[Math.abs(userId) % DEFAULT_POOL.length];
+}

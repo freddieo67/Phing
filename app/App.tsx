@@ -23,7 +23,7 @@ import { clearUser, loadUser } from './src/session';
 import { getCurrentCoords, getSavedLocation, saveLocationCache, withTimeout } from './src/location';
 import { syncBackgroundLocation, addActiveShare } from './src/backgroundLocation';
 import { SIGNALS } from './src/signals';
-import { getSavedMapIcon, saveMapIcon, MapIconEmoji, DEFAULT_MAP_ICON } from './src/mapIcons';
+import { getSavedMapIcon, saveMapIcon, MapIconEmoji, DEFAULT_MAP_ICON, getDefaultIconForUserId } from './src/mapIcons';
 import { recordContactUsage } from './src/contactPrefs';
 import { registerForPushToken, getNotifications, refreshNotificationTexts } from './src/push';
 import type * as NotificationsType from 'expo-notifications';
@@ -1156,7 +1156,7 @@ export default function App() {
                   lng: location.coords.longitude,
                   title: i18n.t('my_position'),
                   color: '#007AFF',
-                  emoji: myActivePhotoShare ? '📷' : myMapIcon,
+                  emoji: myActivePhotoShare ? '📷' : (myMapIcon && myMapIcon !== '🐷' ? myMapIcon : getDefaultIconForUserId(user?.id)),
                   photoThumb: myActivePhotoShare?.photo_thumb ?? null,
                   shareId: myActivePhotoShare?.id,
                   ringColor: activeGame?.status === 'active' ? myTeamColor : undefined,
@@ -1207,7 +1207,7 @@ export default function App() {
                             : `${p.display_name} (${p.team_name || team?.name || 'Spelare'}) · ${p.score || 0} p`,
                           label: p.display_name,
                           color: pColor,
-                          emoji: p.icon || '🐷',
+                          emoji: p.icon && p.icon !== '🐷' ? p.icon : getDefaultIconForUserId(p.user_id),
                           ringColor: pColor,
                           isOffline: isStale,
                           offlineLabel: offlineLabel,

@@ -167,23 +167,23 @@ const LeafletMap = React.forwardRef<LeafletMapRef, Props>(
 
                 var iconInnerHtml;
                 if (nextOffline) {
-                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3px dashed ' + (m.ringColor || '#9CA3AF') + ';background:rgba(243,244,246,0.92);box-shadow:none;font-size:28px;line-height:1;margin-bottom:2px;opacity:0.8;">' + m.emoji + '</div>';
+                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:19px;border:2.5px dashed ' + (m.ringColor || '#9CA3AF') + ';background:rgba(255,255,255,0.18);box-shadow:none;font-size:24px;line-height:1;margin-bottom:2px;opacity:0.8;">' + m.emoji + '</div>';
                 } else if (m.ringColor) {
-                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:26px;border:3.5px solid ' + m.ringColor + ';background:rgba(255,255,255,0.94);box-shadow:0 0 14px ' + m.ringColor + 'bb, 0 4px 10px rgba(0,0,0,0.35);font-size:30px;line-height:1;margin-bottom:2px;">' + m.emoji + '</div>';
+                  iconInnerHtml = '<div style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:19px;border:3px solid ' + m.ringColor + ';background:rgba(255,255,255,0.22);box-shadow:0 0 8px ' + m.ringColor + 'aa, 0 2px 6px rgba(0,0,0,0.3);font-size:24px;line-height:1;margin-bottom:2px;">' + m.emoji + '</div>';
                 } else {
-                  iconInnerHtml = '<div style="font-size:46px;line-height:1.15;padding-top:4px;overflow:visible;text-align:center;filter:drop-shadow(0 6px 8px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
+                  iconInnerHtml = '<div style="font-size:40px;line-height:1.15;padding-top:2px;overflow:visible;text-align:center;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.35)) drop-shadow(0 1px 2px rgba(0,0,0,0.25));">' + m.emoji + '</div>';
                 }
                 var groundShadowHtml = isMeeting
-                  ? '<div style="width:16px;height:5px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-4px;margin-bottom:2px;"></div>'
-                  : '<div style="width:26px;height:7px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.45) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-6px;margin-bottom:2px;"></div>';
+                  ? '<div style="width:14px;height:4px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.55) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-3px;margin-bottom:2px;"></div>'
+                  : '<div style="width:20px;height:5px;background:radial-gradient(ellipse at center,rgba(0,0,0,0.45) 0%,rgba(0,0,0,0) 75%);border-radius:50%;margin-top:-4px;margin-bottom:2px;"></div>';
 
                 marker = L.marker([m.lat, m.lng], {
                   icon: L.divIcon({
                     className: '',
-                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:100px;overflow:visible;' + (nextOffline ? 'opacity:0.75;' : '') + '">' + iconInnerHtml + groundShadowHtml + emojiNameHtml + offlineBadgeHtml + '</div>',
-                    iconSize: [100, 80],
-                    iconAnchor: isMeeting ? [50, 52] : [50, 46],
-                    popupAnchor: isMeeting ? [0, -50] : [0, -32],
+                    html: '<div style="display:flex;flex-direction:column;align-items:center;width:90px;overflow:visible;' + (nextOffline ? 'opacity:0.75;' : '') + '">' + iconInnerHtml + groundShadowHtml + emojiNameHtml + offlineBadgeHtml + '</div>',
+                    iconSize: [90, 70],
+                    iconAnchor: isMeeting ? [45, 46] : [45, 40],
+                    popupAnchor: isMeeting ? [0, -42] : [0, -32],
                   }),
                 });
                 if (m.shareId && (m.emoji === '📷' || m.isMeetingPoint)) {
