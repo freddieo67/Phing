@@ -1281,17 +1281,6 @@ export default function App() {
           </View>
         )}
 
-        {/* Logotyp högst upp på kartan (döljs när karusellkort visas eller när mötesplats sätts på kartan) */}
-        {!hasTopItems && !meetingDraft && (
-          <View style={styles.logoHeader} pointerEvents="none">
-            <Image
-              source={require('./assets/logo-header.png')}
-              style={styles.logoImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
-
         {/* Min Avatar / Spelar-ikon högst upp till höger */}
         {!meetingDraft && !activeGame && (
           <TouchableOpacity
