@@ -37,8 +37,8 @@ export async function verifyPhotoWithGemini(
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // gemini-1.5-flash är blixtsnabb och har hög gratiskvot för bildanalys
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // gemini-3.1-flash-lite är samma stabila blixtsnabba modell som används i Xspecio
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.1-flash-lite' });
 
     const prompt = `Du är en opartisk och noggrann domare i ett fotobingo-tävlingsspel (Phing).
 Spelaren har tagit ett foto och påstår att det föreställer målet: "${targetLabel}".
