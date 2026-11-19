@@ -11,6 +11,8 @@ export const sv = {
 
   // Search
   search_friends: 'Hitta vänner...',
+  find_players: 'Hitta medspelare',
+  search_players: 'Sök medspelare...',
 
   // Contacts Modal
   send_to: 'Skicka till',

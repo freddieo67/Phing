@@ -9,6 +9,8 @@ export const en = {
   invalid_name: 'You must enter a name',
   
   search_friends: 'Find friends...',
+  find_players: 'Find players',
+  search_players: 'Search players...',
   
   send_to: 'Send to',
   want_to_send_signal: 'Want to include a signal?',

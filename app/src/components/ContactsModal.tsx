@@ -284,6 +284,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
   const chosenNames = chosenContacts.map(c => c.name).join(', ');
 
   const getModalTitle = () => {
+    if (mode === 'game') return i18n.t('find_players') || 'Hitta medspelare';
     if (mode === 'send') return i18n.t('share_position_with');
     if (mode === 'ping') return i18n.t('phing_to_title');
     if (mode === 'flash') return i18n.t('flash_to_title');
@@ -605,7 +606,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
               <View style={styles.searchRow}>
                 <TextInput
                   style={styles.searchInput}
-                  placeholder={i18n.t('search_friends')}
+                  placeholder={mode === 'game' ? (i18n.t('search_players') || 'Sök medspelare...') : i18n.t('search_friends')}
                   placeholderTextColor="#94a3b8"
                   value={searchQuery}
                   onChangeText={setSearchQuery}
@@ -808,7 +809,7 @@ export default function ContactsModal({ visible, mode, currentUserId, onClose, o
                   style={styles.multiProceedButton}
                   activeOpacity={0.85}
                   onPress={() => {
-                    if (mode === 'request' || mode === 'ping' || mode === 'flash') {
+                    if (mode === 'request' || mode === 'ping' || mode === 'flash' || mode === 'game') {
                       onSelect(checkedContacts);
                     } else {
                       setChosenContacts(checkedContacts);
