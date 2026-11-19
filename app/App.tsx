@@ -28,7 +28,7 @@ import { recordContactUsage } from './src/contactPrefs';
 import { registerForPushToken, getNotifications, refreshNotificationTexts } from './src/push';
 import type * as NotificationsType from 'expo-notifications';
 import i18n, { syncSystemLocale } from './src/i18n';
-import mobileAds, { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { mobileAds, BannerAd, BannerAdSize, TestIds } from './src/ads';
 import { fetchNearbyPlace, DetectedPlace } from './src/places';
 const POLL_INTERVAL_MS = 30_000;
 const EMPTY_INBOX: Inbox = { positions: [], requests: [], outgoing: [], sharing: [], active_shares: [] };
@@ -302,10 +302,16 @@ export default function App() {
 
   // Initiera Google Mobile Ads och ladda sparad användare
   useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then(() => setAdsInitialized(true))
-      .catch(err => console.warn('MobileAds init error:', err));
+    if (mobileAds) {
+      try {
+        mobileAds()
+          .initialize()
+          .then(() => setAdsInitialized(true))
+          .catch((err: any) => console.warn('MobileAds init error:', err));
+      } catch (err) {
+        console.warn('MobileAds init exception:', err);
+      }
+    }
 
     (async () => {
       const saved = await loadUser();
@@ -1490,7 +1496,7 @@ export default function App() {
       </View>
       
       {/* Reklamyta: Visas först när annonsmotorn är helt initierad */}
-      {adsInitialized && (
+      {adsInitialized && BannerAd && (
         <View style={styles.adContainer}>
           <BannerAd
             unitId={TestIds.BANNER}
@@ -1498,7 +1504,7 @@ export default function App() {
             requestOptions={{
               requestNonPersonalizedAdsOnly: true,
             }}
-            onAdFailedToLoad={(error) => {
+            onAdFailedToLoad={(error: any) => {
               console.warn('Ad failed to load:', error);
             }}
           />
