@@ -2,7 +2,7 @@
 // Kan överskridas med miljövariabeln EXPO_PUBLIC_API_URL (t.ex. i app/.env).
 import i18n from './i18n';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://position-614814853862.europe-north1.run.app';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'https://phing-614814853862.europe-north2.run.app';
 
 // Normaliserar svenska nummer till E.164, t.ex. "070-999 80 90" -> "+46709998090"
 export function normalizePhone(raw: string): string {
