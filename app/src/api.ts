@@ -107,6 +107,9 @@ export interface GameItem {
   label: string;
   emoji?: string;
   hint?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  radius_meters?: number | null;
 }
 
 export interface GameParticipant {
@@ -218,7 +221,7 @@ export const api = {
     is_team_game?: boolean;
     game_mode?: GameMode;
     starts_at?: string;
-    items?: (string | { label: string; emoji?: string; hint?: string })[];
+    items?: (string | { label: string; emoji?: string; hint?: string; latitude?: number; longitude?: number; radius_meters?: number })[];
     participant_ids?: number[];
     team_assignments?: Record<number, 'red' | 'blue'>;
   }) => apiPost<Game>('/games', body),

@@ -102,6 +102,9 @@ export default function GameLobbyModal({
         label: t.title,
         emoji: t.icon,
         hint: t.hint,
+        latitude: t.latitude,
+        longitude: t.longitude,
+        radius_meters: t.radius_meters,
       }));
 
       const game = await api.createGame({

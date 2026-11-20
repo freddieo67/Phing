@@ -3,9 +3,14 @@ import { pool } from './db';
 import { getDisplayName, sendPush } from './push';
 import { verifyPhotoWithGemini } from './aiService.js';
 
-// Se till att hint-kolumnen finns i game_items
-pool.query(`ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS hint TEXT DEFAULT '';`).catch(err => {
-  console.warn('Migration game_items.hint warning:', err.message);
+// Se till att hint, latitude, longitude och radius_meters finns i game_items
+pool.query(`
+  ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS hint TEXT DEFAULT '';
+  ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+  ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+  ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS radius_meters INTEGER DEFAULT 50;
+`).catch(err => {
+  console.warn('Migration game_items columns warning:', err.message);
 });
 
 export const gamesRouter = Router();
@@ -77,10 +82,13 @@ gamesRouter.post('/', async (req, res) => {
       const label = typeof raw === 'string' ? raw : (raw?.label || `Mål ${i + 1}`);
       const emoji = typeof raw === 'object' && raw?.emoji ? raw.emoji : '🎯';
       const hint = typeof raw === 'object' && raw?.hint ? raw.hint : '';
+      const lat = typeof raw === 'object' && raw?.latitude != null ? Number(raw.latitude) : null;
+      const lng = typeof raw === 'object' && raw?.longitude != null ? Number(raw.longitude) : null;
+      const radius = typeof raw === 'object' && raw?.radius_meters != null ? Number(raw.radius_meters) : 50;
       await client.query(
-        `INSERT INTO public.game_items (game_id, tile_index, label, emoji, hint)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [game.id, i, label, emoji, hint]
+        `INSERT INTO public.game_items (game_id, tile_index, label, emoji, hint, latitude, longitude, radius_meters)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [game.id, i, label, emoji, hint, lat, lng, radius]
       );
     }
 
@@ -211,7 +219,7 @@ gamesRouter.get('/:id', async (req, res) => {
 
     // Hämta brickans rutor (items)
     const itemsRes = await pool.query(
-      `SELECT tile_index, label, emoji, hint FROM public.game_items WHERE game_id = $1 ORDER BY tile_index ASC`,
+      `SELECT tile_index, label, emoji, hint, latitude, longitude, radius_meters FROM public.game_items WHERE game_id = $1 ORDER BY tile_index ASC`,
       [gameId]
     );
 
@@ -460,33 +468,72 @@ gamesRouter.post('/:id/phings', async (req, res) => {
       }
     }
 
-    // Hämta målets namn och ledtråd för AI-analys
+    // Hämta målets namn, ledtråd och eventuella koordinater för platsmål
     const itemQueryRes = await client.query(
-      `SELECT label, hint FROM public.game_items WHERE game_id = $1 AND tile_index = $2`,
+      `SELECT label, hint, latitude, longitude, radius_meters FROM public.game_items WHERE game_id = $1 AND tile_index = $2`,
       [gameId, tileIndex]
     );
-    const targetLabel = itemQueryRes.rows[0]?.label || `Mål ${tileIndex + 1}`;
-    const targetHint = itemQueryRes.rows[0]?.hint || null;
+    const targetItem = itemQueryRes.rows[0];
+    const targetLabel = targetItem?.label || `Mål ${tileIndex + 1}`;
+    const targetHint = targetItem?.hint || null;
+    const isLocationTarget = targetItem && targetItem.latitude != null && targetItem.longitude != null;
 
-    // AI-identifiering med Google Gemini (Kräver minst 75% för godkännande)
-    let aiResult;
-    try {
-      aiResult = await verifyPhotoWithGemini(photoData, targetLabel, targetHint);
-    } catch (aiErr: any) {
-      console.error('AI verification failed:', aiErr);
-      await client.query('ROLLBACK');
-      const msg = aiErr?.message || 'Kunde inte analysera bilden med AI.';
-      return res.status(500).json({ error: `AI-fel: ${msg}` });
-    }
+    let aiScore = 100;
+    let aiReason = 'Position godkänd';
 
-    if (!aiResult.approved) {
-      await client.query('ROLLBACK');
-      return res.status(422).json({
-        error: `Fotot godkändes inte (${aiResult.score}% säkerhet, krävs minst 75%). ${aiResult.reason}`,
-        ai_score: aiResult.score,
-        ai_reason: aiResult.reason,
-        approved: false,
-      });
+    if (isLocationTarget) {
+      // Platser: Verifiera att spelaren fysiskt befinner sig inom tillåten radie (default 50m)
+      const targetLat = Number(targetItem.latitude);
+      const targetLng = Number(targetItem.longitude);
+      const radius = Number(targetItem.radius_meters) || 50;
+
+      // Haversine-beräkning av avstånd i meter
+      const toRad = (deg: number) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat - targetLat);
+      const dLon = toRad(lng - targetLng);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(targetLat)) * Math.cos(toRad(lat)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const dist = 6371000 * c; // meter
+
+      // Tillåt rimlig GPS-felmarginal (max 25 meter extra om telefonen har lite sämre noggrannhet)
+      const allowedRadius = radius + Math.min(accuracy || 10, 25);
+      if (dist > allowedRadius) {
+        await client.query('ROLLBACK');
+        return res.status(422).json({
+          error: `Du är för långt bort från ${targetLabel}! (${Math.round(dist)} m bort, krävs inom ${radius} m).`,
+          distance_meters: Math.round(dist),
+          required_radius: radius,
+          approved: false,
+        });
+      }
+      aiScore = 100;
+      aiReason = `Position godkänd (${Math.round(dist)} m från ${targetLabel})`;
+    } else {
+      // Föremål: AI-identifiering med Google Gemini (Kräver minst 75% för godkännande)
+      let aiResult;
+      try {
+        aiResult = await verifyPhotoWithGemini(photoData, targetLabel, targetHint);
+      } catch (aiErr: any) {
+        console.error('AI verification failed:', aiErr);
+        await client.query('ROLLBACK');
+        const msg = aiErr?.message || 'Kunde inte analysera bilden med AI.';
+        return res.status(500).json({ error: `AI-fel: ${msg}` });
+      }
+
+      if (!aiResult.approved) {
+        await client.query('ROLLBACK');
+        return res.status(422).json({
+          error: `Fotot godkändes inte (${aiResult.score}% säkerhet, krävs minst 75%). ${aiResult.reason}`,
+          ai_score: aiResult.score,
+          ai_reason: aiResult.reason,
+          approved: false,
+        });
+      }
+      aiScore = aiResult.score;
+      aiReason = aiResult.reason;
     }
 
     // Spara phing
@@ -495,7 +542,7 @@ gamesRouter.post('/:id/phings', async (req, res) => {
        VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326), $7, $8, $9, $10, $11, 'approved')
        RETURNING id, game_id, user_id, team_id, tile_index, photo_thumb, approved_count, rejected_count, created_at, ai_score, ai_reason,
                  ST_Y(location) AS latitude, ST_X(location) AS longitude`,
-      [gameId, userId, userTeamId, tileIndex, lng, lat, accuracy, photoThumb, photoData, aiResult.score, aiResult.reason]
+      [gameId, userId, userTeamId, tileIndex, lng, lat, accuracy, photoThumb, photoData, aiScore, aiReason]
     );
 
     // Uppdatera deltagarens personliga poäng
@@ -652,8 +699,8 @@ gamesRouter.post('/:id/phings', async (req, res) => {
       userScore,
       hasWon,
       winningTeamName,
-      ai_score: aiResult.score,
-      ai_reason: aiResult.reason,
+      ai_score: aiScore,
+      ai_reason: aiReason,
     });
   } catch (err) {
     await client.query('ROLLBACK');

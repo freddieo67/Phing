@@ -1305,9 +1305,27 @@ export default function App() {
                     shareId: gp.id,
                     isGamePhing: true,
                   };
-                })
+                }),
+                ...(activeGame?.status === 'active'
+                  ? gameItems
+                      .filter(it => it.latitude != null && it.longitude != null && !myCompletedPhings[it.tile_index])
+                      .map(it => ({
+                        id: `game-loc-${it.tile_index}`,
+                        lat: it.latitude!,
+                        lng: it.longitude!,
+                        title: it.label + (it.hint ? `: ${it.hint}` : ''),
+                        label: it.label,
+                        color: '#0F4C5C',
+                        emoji: '📍',
+                        ringColor: '#0F4C5C',
+                      }))
+                  : [])
               ]}
               onMarkerPress={(marker) => {
+                if (marker.id.startsWith('game-loc-')) {
+                  setBingoGridVisible(true);
+                  return;
+                }
                 if (marker.id.startsWith('phing-')) {
                   setGameReviewVisible(true);
                   return;
@@ -1805,6 +1823,7 @@ export default function App() {
         allPhings={gamePhings}
         queuedPhings={queuedPhings}
         currentUserId={user?.id || 1}
+        userLocation={location}
         onClose={() => setBingoGridVisible(false)}
         onSubmitTile={handleTileSubmit}
         onViewPhing={() => setGameReviewVisible(true)}

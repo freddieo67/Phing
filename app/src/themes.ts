@@ -2,6 +2,9 @@ export interface ThemeItem {
   title: string;  // Kortnamn som visas på spelbrickan (1-2 ord)
   hint?: string;  // Valfri beskrivning (om tom öppnas kameran direkt vid klick)
   icon: string;   // Emoji/flagga som visas i rutan
+  latitude?: number;
+  longitude?: number;
+  radius_meters?: number;
 }
 
 export interface ThemeCategory {
@@ -9,10 +12,47 @@ export interface ThemeCategory {
   name: string;
   description: string;
   icon: string;
+  type?: 'objects' | 'locations';
   items: ThemeItem[];
 }
 
 export const THEME_CATEGORIES: ThemeCategory[] = [
+  // =========================================================================
+  // 0. PLATSER & KROGAR: SÖDERMALM (Stockholm)
+  // =========================================================================
+  {
+    id: 'sodermalm',
+    name: 'Södermalm (Stockholm)',
+    description: 'Torg, utsiktsplatser, parker och klassiska krogar på Söder!',
+    icon: '📍',
+    type: 'locations',
+    items: [
+      { title: 'Mariatorget', hint: 'Fontänen Tors fiske mitt i parken', icon: '⛲', latitude: 59.3175, longitude: 18.0628, radius_meters: 50 },
+      { title: 'Nytorget', hint: 'Parken och hjärtat av SoFo', icon: '🌳', latitude: 59.3126, longitude: 18.0838, radius_meters: 50 },
+      { title: 'Mosebacke torg', hint: 'Framför Södra Teatern och fontänen', icon: '🎭', latitude: 59.3180, longitude: 18.0740, radius_meters: 50 },
+      { title: 'Medborgarplatsen', hint: 'Mitt på torget framför trappan och Söderhallarna', icon: '🏛️', latitude: 59.3148, longitude: 18.0718, radius_meters: 50 },
+      { title: 'Bofills båge', hint: 'Halvcirkeln i Fatbursparken vid Södra Station', icon: '🏹', latitude: 59.3142, longitude: 18.0678, radius_meters: 50 },
+      { title: 'Katarinahissen', hint: 'Katarinahissen vid Slussen', icon: '🛗', latitude: 59.3197, longitude: 18.0722, radius_meters: 50 },
+      { title: 'Skinnarviksberget', hint: 'Högsta utsiktspunkten över Riddarfjärden', icon: '⛰️', latitude: 59.3195, longitude: 18.0515, radius_meters: 50 },
+      { title: 'Monteliusvägen', hint: 'Utsiktsbryggan vid Ivar Los park', icon: '🌅', latitude: 59.3204, longitude: 18.0592, radius_meters: 50 },
+      { title: 'Fjällgatan', hint: 'Utsiktsterrassen över Saltsjön och Djurgården', icon: '☕', latitude: 59.3172, longitude: 18.0865, radius_meters: 50 },
+      { title: 'Sofia kyrka', hint: 'Kyrkan uppe på Vitabergsparkens topp', icon: '⛪', latitude: 59.3120, longitude: 18.0886, radius_meters: 50 },
+      { title: 'Tanto strandbad', hint: 'Badstranden och bryggorna i Tantolunden', icon: '🏖️', latitude: 59.3115, longitude: 18.0475, radius_meters: 50 },
+      { title: 'Hornstulls torg', hint: 'Torget utanför tunnelbanan vid Hornstull', icon: '🚇', latitude: 59.3160, longitude: 18.0345, radius_meters: 50 },
+      { title: 'Pelikan', hint: 'Blekingegatan 40 – klassisk ölhall sedan 1700-talet', icon: '🍺', latitude: 59.3106, longitude: 18.0772, radius_meters: 50 },
+      { title: 'Gröne Jägaren', hint: 'Götgatan 64 – klassisk supporter- och ölkrog', icon: '🍻', latitude: 59.3135, longitude: 18.0734, radius_meters: 50 },
+      { title: 'Kvarnen', hint: 'Tjärhovsgatan 4 – anrik krog och ölhall vid Medis', icon: '🍻', latitude: 59.3155, longitude: 18.0745, radius_meters: 50 },
+      { title: 'Carmen', hint: 'Tjärhovsgatan 44 – kultpub vid Björns Trädgård', icon: '🍷', latitude: 59.3153, longitude: 18.0792, radius_meters: 50 },
+      { title: 'Akkurat', hint: 'Hornsgatan 18 – känd för öl- och whisky vid Slussen', icon: '🥃', latitude: 59.3191, longitude: 18.0682, radius_meters: 50 },
+      { title: 'Oliver Twist', hint: 'Repslagargatan 6 – brittisk ölpub vid Götgatsbacken', icon: '🍺', latitude: 59.3182, longitude: 18.0700, radius_meters: 50 },
+      { title: 'Urban Deli', hint: 'Nytorget 4 – hjärtat av SoFo', icon: '🥗', latitude: 59.3128, longitude: 18.0832, radius_meters: 50 },
+      { title: 'Tjoget', hint: 'Hornsbruksgatan 24 – prisbelönt cocktailbar vid Hornstull', icon: '🍸', latitude: 59.3163, longitude: 18.0340, radius_meters: 50 },
+      { title: 'Häktet', hint: 'Hornsgatan 82 – krog och bar i gamla 1700-talshäktet', icon: '🗝️', latitude: 59.3178, longitude: 18.0526, radius_meters: 50 },
+      { title: 'Morfar Ginko', hint: 'Swedenborgsgatan 13 vid Mariatorget', icon: '🏓', latitude: 59.3168, longitude: 18.0645, radius_meters: 50 },
+      { title: 'Bleck', hint: 'Katarina Bangata 68 vid Lilla Blecktornsparken', icon: '☀️', latitude: 59.3087, longitude: 18.0862, radius_meters: 50 },
+      { title: 'Gondolen', hint: 'Stadsgården 6 – klassikern svävande över Slussen', icon: '🥂', latitude: 59.3196, longitude: 18.0725, radius_meters: 50 },
+    ],
+  },
   // =========================================================================
   // 1. STAD & TRAFIK (Allt blandat: stadsmiljö, detaljer och vardagliga fordon)
   // =========================================================================

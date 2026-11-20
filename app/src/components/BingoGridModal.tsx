@@ -15,8 +15,10 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Location from 'expo-location';
 import { Game, GameItem, GamePhing, GameTeam } from '../api';
 import { QueuedPhing } from '../offlineQueue';
+import { getDistanceMeters } from '../location';
 import i18n from '../i18n';
 
 interface BingoGridModalProps {
@@ -27,6 +29,7 @@ interface BingoGridModalProps {
   allPhings?: GamePhing[];
   queuedPhings?: QueuedPhing[];
   currentUserId: number;
+  userLocation?: Location.LocationObject | null;
   onClose: () => void;
   onSubmitTile: (tileIndex: number, photoThumb: string, photoData: string) => Promise<void>;
   onViewPhing?: (phing: GamePhing) => void;
@@ -47,6 +50,7 @@ export default function BingoGridModal({
   allPhings = [],
   queuedPhings = [],
   currentUserId,
+  userLocation,
   onClose,
   onSubmitTile,
   onViewPhing,
@@ -173,6 +177,23 @@ export default function BingoGridModal({
     const item = items.find(it => it.tile_index === index);
     const label = item?.label || `Mål ${index + 1}`;
     const hint = item?.hint;
+    const isLocation = item?.latitude != null && item?.longitude != null;
+    const userCoords = userLocation?.coords;
+    const distMeters = isLocation && userCoords
+      ? Math.round(getDistanceMeters(userCoords.latitude, userCoords.longitude, item.latitude!, item.longitude!))
+      : null;
+    const reqRadius = item?.radius_meters || 50;
+
+    // Om det är ett platsmål: kräv att spelaren fysiskt står inom radien!
+    if (isLocation && distMeters !== null && distMeters > reqRadius) {
+      const distStr = distMeters < 1000 ? `${distMeters} m` : `${(distMeters / 1000).toFixed(1)} km`;
+      Alert.alert(
+        `📍 ${label}`,
+        `Du är för långt bort (${distStr}).\n\nDu måste gå inom ${reqRadius} meter från platsen för att kunna ta bilden och erövra rutan!`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
 
     const startCamera = async () => {
       if (!canLaunch()) return;
@@ -371,10 +392,21 @@ export default function BingoGridModal({
                 );
               }
 
+              const isLocation = item?.latitude != null && item?.longitude != null;
+              const userCoords = userLocation?.coords;
+              const distMeters = isLocation && userCoords
+                ? Math.round(getDistanceMeters(userCoords.latitude, userCoords.longitude, item.latitude!, item.longitude!))
+                : null;
+              const reqRadius = item?.radius_meters || 50;
+              const isWithinRange = distMeters !== null && distMeters <= reqRadius;
+              const distanceText = distMeters !== null
+                ? (distMeters < 1000 ? `${distMeters} m` : `${(distMeters / 1000).toFixed(1)} km`)
+                : null;
+
               return (
                 <TouchableOpacity
                   key={`tile-${index}`}
-                  style={[styles.tile, styles.tileEmpty]}
+                  style={[styles.tile, styles.tileEmpty, isWithinRange && styles.tileNear]}
                   activeOpacity={0.75}
                   onPress={() => handleTilePress(index)}
                   disabled={capturing}
@@ -383,9 +415,18 @@ export default function BingoGridModal({
                     {isProcessingThis ? (
                       <ActivityIndicator size="small" color="#18181B" />
                     ) : (
-                      <Text style={styles.tileLabel} numberOfLines={3}>
-                        {label}
-                      </Text>
+                      <>
+                        <Text style={styles.tileLabel} numberOfLines={2}>
+                          {label}
+                        </Text>
+                        {distanceText && (
+                          <View style={[styles.distancePill, isWithinRange && styles.distancePillNear]}>
+                            <Text style={[styles.distanceText, isWithinRange && styles.distanceTextNear]}>
+                              {isWithinRange ? '🟢 Framme' : `📍 ${distanceText}`}
+                            </Text>
+                          </View>
+                        )}
+                      </>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -624,6 +665,29 @@ const styles = StyleSheet.create({
     backgroundColor: '#EDEDED', // Offwhite i rutan
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  tileNear: {
+    borderWidth: 2.5,
+    borderColor: '#10B981', // Grön markering när man är inom 50m!
+    backgroundColor: '#F0FDF4',
+  },
+  distancePill: {
+    marginTop: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#E4E4E7',
+  },
+  distancePillNear: {
+    backgroundColor: '#DCFCE7',
+  },
+  distanceText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#52525B',
+  },
+  distanceTextNear: {
+    color: '#15803D',
   },
   tileCompleted: {
     backgroundColor: '#000000',
