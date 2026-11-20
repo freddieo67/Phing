@@ -1607,9 +1607,9 @@ export default function App() {
                 onPress={() => setBingoGridVisible(true)}
                 activeOpacity={0.85}
               >
-                <FontAwesome6 name="table-cells" size={17} color="#FFFFFF" />
+                <FontAwesome6 name="table-cells" size={14} color="#10B981" />
                 <Text style={styles.gameGridBtnText}>
-                  Min Bricka ({myCompletedCount}/{totalGameTiles})
+                  Bricka ({myCompletedCount}/{totalGameTiles})
                 </Text>
               </TouchableOpacity>
 
@@ -1618,7 +1618,7 @@ export default function App() {
                 onPress={() => setGameReviewVisible(true)}
                 activeOpacity={0.85}
               >
-                <FontAwesome6 name="images" size={16} color="#0F4C5C" />
+                <FontAwesome6 name="images" size={14} color="#FFFFFF" />
                 <Text style={styles.gameReviewBtnText}>
                   Foton ({gamePhings.length})
                 </Text>
@@ -1629,7 +1629,7 @@ export default function App() {
                 onPress={() => setGameSwitcherVisible(true)}
                 activeOpacity={0.85}
               >
-                <FontAwesome6 name="layer-group" size={15} color="#0F4C5C" />
+                <FontAwesome6 name="layer-group" size={14} color="#FFFFFF" />
                 <Text style={styles.gameSwitcherBtnText}>
                   {userGames.length > 1 ? `${userGames.length} spel` : 'Spel'}
                 </Text>
@@ -2151,34 +2151,33 @@ const styles = StyleSheet.create({
   activeGameBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   gameGridBtn: {
-    flex: 1,
-    backgroundColor: '#10B981',
-    height: 52,
-    borderRadius: 26,
+    flex: 1.2,
+    backgroundColor: '#0F4C5C',
+    height: 42,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingHorizontal: 12,
+    gap: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   gameGridBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
   },
   gameReviewBtn: {
-    backgroundColor: '#FFFFFF',
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: '#0F4C5C',
+    backgroundColor: '#0F4C5C',
+    height: 42,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2186,21 +2185,19 @@ const styles = StyleSheet.create({
     gap: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
   gameReviewBtnText: {
-    color: '#0F4C5C',
-    fontSize: 12.5,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
   },
   gameSwitcherBtn: {
-    backgroundColor: '#FFFFFF',
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 2,
-    borderColor: '#0F4C5C',
+    backgroundColor: '#0F4C5C',
+    height: 42,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2208,13 +2205,13 @@ const styles = StyleSheet.create({
     gap: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
   gameSwitcherBtnText: {
-    color: '#0F4C5C',
-    fontSize: 12.5,
+    color: '#FFFFFF',
+    fontSize: 13,
     fontWeight: '700',
   },
   gameSwitcherPill: {
