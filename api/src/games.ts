@@ -131,7 +131,7 @@ gamesRouter.post('/', async (req, res) => {
 
     // Skicka push-notis till alla inbjudna
     const hostName = await getDisplayName(hostId);
-    const modeDesc = gameMode === 'block' ? 'Revirkamp (Blockerande rutor!)' : 'Klassisk';
+    const modeDesc = gameMode === 'block' ? 'Dominans (Blockerande rutor!)' : 'Klassisk';
     for (const pid of participantIds) {
       sendPush(
         pid,

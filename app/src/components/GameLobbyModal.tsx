@@ -253,11 +253,11 @@ export default function GameLobbyModal({
               <View style={styles.ruleCardHeader}>
                 <FontAwesome6 name="lock" size={15} color={gameMode === 'block' ? '#0F4C5C' : '#6B7280'} />
                 <Text style={[styles.ruleCardTitle, gameMode === 'block' && styles.ruleCardTitleActive]}>
-                  Revirkamp (Blockering) 🔥
+                  Dominans (Blockering) 🔥
                 </Text>
               </View>
               <Text style={styles.ruleCardDesc}>
-                När ett lag tar en ruta blockeras den för alla andra! "Winner takes it all" när omöjligt att komma ikapp!
+                Först till kvarn! När ett lag tar en ruta/position blockeras den för motståndarna. "Winner takes it all"!
               </Text>
             </TouchableOpacity>
           </View>

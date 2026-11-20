@@ -64,7 +64,7 @@ export default function GameInviteModal({
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Spelläge:</Text>
               <Text style={styles.detailValue}>
-                {isBlockMode ? 'Revirkamp (Blockering)' : 'Klassisk'}
+                {isBlockMode ? 'Dominans (Blockering)' : 'Klassisk'}
               </Text>
             </View>
 

@@ -105,7 +105,7 @@ export default function GameSwitcherModal({
                     {isBlock && (
                       <View style={[styles.pill, styles.blockPill]}>
                         <FontAwesome6 name="shield-halved" size={11} color="#EF4444" />
-                        <Text style={[styles.pillText, { color: '#EF4444' }]}>Revirkamp</Text>
+                        <Text style={[styles.pillText, { color: '#EF4444' }]}>Dominans</Text>
                       </View>
                     )}
 

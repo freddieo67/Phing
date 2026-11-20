@@ -1363,7 +1363,15 @@ export default function App() {
                 }),
                 ...(activeGame?.status === 'active'
                   ? gameItems
-                      .filter(it => it.latitude != null && it.longitude != null && !myCompletedPhings[it.tile_index])
+                      .filter(it => {
+                        if (it.latitude == null || it.longitude == null) return false;
+                        if (myCompletedPhings[it.tile_index]) return false;
+                        // I Dominans (block-läge): om någon redan tagit platsen är den erövrad och försvinner från kartans att-ta-lista
+                        if (activeGame.game_mode === 'block' && gamePhings.some(gp => gp.tile_index === it.tile_index && gp.status === 'approved')) {
+                          return false;
+                        }
+                        return true;
+                      })
                       .map(it => ({
                         id: `game-loc-${it.tile_index}`,
                         lat: it.latitude!,
