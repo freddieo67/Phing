@@ -1316,8 +1316,7 @@ export default function App() {
                         title: it.label + (it.hint ? `: ${it.hint}` : ''),
                         label: it.label,
                         color: '#0F4C5C',
-                        emoji: '📍',
-                        ringColor: '#0F4C5C',
+                        emoji: it.emoji || '📍',
                       }))
                   : [])
               ]}

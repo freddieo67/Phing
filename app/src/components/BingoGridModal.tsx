@@ -189,7 +189,7 @@ export default function BingoGridModal({
       const distStr = distMeters < 1000 ? `${distMeters} m` : `${(distMeters / 1000).toFixed(1)} km`;
       Alert.alert(
         `📍 ${label}`,
-        `Du är för långt bort (${distStr}).\n\nDu måste gå inom ${reqRadius} meter från platsen för att kunna ta bilden och erövra rutan!`,
+        `Inte i zonen (${distStr}).\n\nDu måste gå inom ${reqRadius} meter från platsen för att kunna ta bilden och erövra rutan!`,
         [{ text: 'OK' }]
       );
       return;
@@ -422,7 +422,7 @@ export default function BingoGridModal({
                         {distanceText && (
                           <View style={[styles.distancePill, isWithinRange && styles.distancePillNear]}>
                             <Text style={[styles.distanceText, isWithinRange && styles.distanceTextNear]}>
-                              {isWithinRange ? '🟢 Framme' : `📍 ${distanceText}`}
+                              {isWithinRange ? '🟢 I zonen' : `📍 ${distanceText}`}
                             </Text>
                           </View>
                         )}
