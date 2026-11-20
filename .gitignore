@@ -6,4 +6,6 @@ ios/
 *.ips
 .gradle/
 app/.gradle/
+scratch/
+
 
