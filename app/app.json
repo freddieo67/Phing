@@ -43,7 +43,10 @@
         "android.permission.CAMERA",
         "android.permission.READ_EXTERNAL_STORAGE",
         "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.READ_CONTACTS"
+        "android.permission.READ_CONTACTS",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -92,9 +95,10 @@
     ],
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "406e1cf0-7d25-412d-b539-8e3928f37c9c"
       }
-    }
+    },
+    "owner": "position1s-team"
   },
   "react-native-google-mobile-ads": {
     "android_app_id": "ca-app-pub-3940256099942544~3347511713",
