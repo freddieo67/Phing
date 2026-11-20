@@ -416,7 +416,12 @@ export default function BingoGridModal({
                       <ActivityIndicator size="small" color="#18181B" />
                     ) : (
                       <>
-                        <Text style={styles.tileLabel} numberOfLines={2}>
+                        <Text
+                          style={styles.tileLabel}
+                          numberOfLines={2}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                        >
                           {label}
                         </Text>
                         {distanceText && (
@@ -711,16 +716,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
     width: '100%',
   },
   tileLabel: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
     color: '#18181B', // Tydlig mörk text mot offwhite
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 16,
   },
   tileImage: {
     width: '100%',
