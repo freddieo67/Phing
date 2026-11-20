@@ -52,7 +52,7 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
       { title: 'Bleck', hint: 'Katarina Bangata 68 vid Lilla Blecktornsparken', icon: '☀️', latitude: 59.3094, longitude: 18.0861, radius_meters: 50 },
       { title: 'Gondolen', hint: 'Stadsgården 6 – klassikern svävande över Slussen', icon: '🥂', latitude: 59.3195, longitude: 18.0732, radius_meters: 50 },
       { title: 'Fåfängan', hint: 'Utsiktsberget och klocktornet i öster', icon: '🌲', latitude: 59.3150, longitude: 18.1008, radius_meters: 50 },
-      { title: 'Södermalmstorg', hint: 'Ryssgården och Stadsmuseet vid Slussen', icon: '🏛️', latitude: 59.3198, longitude: 18.0712, radius_meters: 50 },
+      { title: 'Södermalms-Torg', hint: 'Ryssgården och Stadsmuseet vid Slussen', icon: '🏛️', latitude: 59.3198, longitude: 18.0712, radius_meters: 50 },
       { title: 'Zinkensdamms IP', hint: 'Idrottsplatsen vid Ringvägen', icon: '⚽', latitude: 59.3156, longitude: 18.0500, radius_meters: 50 },
       { title: 'Skanstulls torg', hint: 'Götgatan vid Ringen köpcentrum', icon: '🛍️', latitude: 59.3082, longitude: 18.0758, radius_meters: 50 },
       { title: 'Münchenbryggeriet', hint: 'Söder Mälarstrand 29', icon: '🏭', latitude: 59.3207, longitude: 18.0539, radius_meters: 50 },
