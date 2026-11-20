@@ -18,7 +18,83 @@ export interface ThemeCategory {
 
 export const THEME_CATEGORIES: ThemeCategory[] = [
   // =========================================================================
-  // 0. PLATSER & KROGAR: SÖDERMALM (Stockholm)
+  // 0. PLATSER: STOCKHOLMS INNERSTAD
+  // =========================================================================
+  {
+    id: 'stockholm_innerstad',
+    name: 'Stockholm (Innerstan)',
+    description: 'Slottet, Stadshuset, statyer, torg, Djurgården och de stora landmärkena!',
+    icon: '📍',
+    type: 'locations',
+    items: [
+      // --- Gamla Stan, Helgeandsholmen & Riddarholmen ---
+      { title: 'Kungliga Slottet', hint: 'Yttre borggården vid Lejonbacken', icon: '📍', latitude: 59.3268, longitude: 18.0717, radius_meters: 50 },
+      { title: 'Storkyrkan', hint: 'Domkyrkan vid Slottsbacken', icon: '📍', latitude: 59.3258, longitude: 18.0704, radius_meters: 50 },
+      { title: 'Stortorget', hint: 'Mitt på torget vid Nobelprismuseet', icon: '📍', latitude: 59.3250, longitude: 18.0708, radius_meters: 50 },
+      { title: 'Riksdagshuset', hint: 'Östra bron på Helgeandsholmen', icon: '📍', latitude: 59.3275, longitude: 18.0675, radius_meters: 50 },
+      { title: 'Riddarholmskyrkan', hint: 'Kungliga gravkyrkan på Riddarholmen', icon: '📍', latitude: 59.3252, longitude: 18.0642, radius_meters: 50 },
+      { title: 'Evert Taubes staty', hint: 'Statyn med lutan på Evert Taubes terrass', icon: '📍', latitude: 59.3250, longitude: 18.0617, radius_meters: 50 },
+      { title: 'S:t Göran & Draken', hint: 'Monumentala statyn vid Köpmanbrinken', icon: '📍', latitude: 59.3248, longitude: 18.0734, radius_meters: 50 },
+      { title: 'Järnpojke', hint: 'Bollhustäppan vid Finska kyrkan (Sveriges minsta staty)', icon: '📍', latitude: 59.3254, longitude: 18.0719, radius_meters: 50 },
+
+      // --- City & Norrmalm ---
+      { title: 'Kungliga Operan', hint: 'Huvudentrén mot Gustav Adolfs torg', icon: '📍', latitude: 59.3297, longitude: 18.0703, radius_meters: 50 },
+      { title: 'Gustav II Adolf', hint: 'Ryttarstatyn mitt på Gustav Adolfs torg', icon: '📍', latitude: 59.3298, longitude: 18.0688, radius_meters: 50 },
+      { title: 'Dramaten', hint: 'Nybroplan och Margaretha Krooks staty i hörnet', icon: '📍', latitude: 59.3332, longitude: 18.0772, radius_meters: 50 },
+      { title: 'Sergels torg', hint: 'Plattan och Kristallvertikalaccent', icon: '📍', latitude: 59.3323, longitude: 18.0645, radius_meters: 50 },
+      { title: 'Hötorget', hint: 'Konserthuset och Carl Milles Orfeus-fontän', icon: '📍', latitude: 59.3347, longitude: 18.0625, radius_meters: 50 },
+      { title: 'Kungsträdgården', hint: 'Karl XII:s staty och fontänen', icon: '📍', latitude: 59.3305, longitude: 18.0722, radius_meters: 50 },
+      { title: 'Centralstationen', hint: 'Nils Ericsons staty vid huvudentrén', icon: '📍', latitude: 59.3308, longitude: 18.0583, radius_meters: 50 },
+      { title: 'Rosenbad', hint: 'Strömgatan vid Sagerska palatset', icon: '📍', latitude: 59.3287, longitude: 18.0664, radius_meters: 50 },
+      { title: 'Strömkajen', hint: 'Kajen framför Grand Hôtel med slottsutsikten', icon: '📍', latitude: 59.3294, longitude: 18.0753, radius_meters: 50 },
+
+      // --- Östermalm, Blasieholmen & Skeppsholmen ---
+      { title: 'Svampen', hint: 'Klassiska mötesplatsen på Stureplan', icon: '📍', latitude: 59.3361, longitude: 18.0725, radius_meters: 50 },
+      { title: 'Nationalmuseum', hint: 'Södra Blasieholmshamnen framför entrén', icon: '📍', latitude: 59.3283, longitude: 18.0782, radius_meters: 50 },
+      { title: 'Skeppsholmsbron', hint: 'Gyllene kungakronan mitt på bron', icon: '📍', latitude: 59.3275, longitude: 18.0820, radius_meters: 50 },
+      { title: 'Af Chapman', hint: 'Vita fullriggaren vid Skeppsholmens kaj', icon: '📍', latitude: 59.3256, longitude: 18.0828, radius_meters: 50 },
+      { title: 'Moderna Museet', hint: 'Entréplan vid Exercisplan på Skeppsholmen', icon: '📍', latitude: 59.3260, longitude: 18.0847, radius_meters: 50 },
+      { title: 'Berzelii park', hint: 'Berzelius-statyn framför Berns salonger', icon: '📍', latitude: 59.3328, longitude: 18.0744, radius_meters: 50 },
+      { title: 'Kungliga Biblioteket', hint: 'Humlegården framför Linné-statyn', icon: '📍', latitude: 59.3384, longitude: 18.0720, radius_meters: 50 },
+      { title: 'Östermalmstorg', hint: 'Torget framför anrika Saluhallen', icon: '📍', latitude: 59.3359, longitude: 18.0778, radius_meters: 50 },
+      { title: 'Strandvägen', hint: 'Kajpromenaden vid Nybrovikens båtplatser', icon: '📍', latitude: 59.3328, longitude: 18.0789, radius_meters: 50 },
+      { title: 'Karlaplan', hint: 'Mitt i den runda fontänparken', icon: '📍', latitude: 59.3387, longitude: 18.0903, radius_meters: 50 },
+      { title: 'Stockholms Stadion', hint: 'Tegeltornen vid Valhallavägen', icon: '📍', latitude: 59.3453, longitude: 18.0792, radius_meters: 50 },
+
+      // --- Kungsholmen ---
+      { title: 'Stadshuset', hint: 'Borggården och Birger Jarls sarkofag vid vattnet', icon: '📍', latitude: 59.3274, longitude: 18.0543, radius_meters: 50 },
+      { title: 'Rålambshovsparken', hint: 'Amfiteatern och skejtparken i Rålis', icon: '📍', latitude: 59.3285, longitude: 18.0264, radius_meters: 50 },
+      { title: 'Norr Mälarstrand', hint: 'Promenadbryggorna vid Kungsholmstorg', icon: '📍', latitude: 59.3270, longitude: 18.0440, radius_meters: 50 },
+
+      // --- Djurgården ---
+      { title: 'Vasamuseet', hint: 'Galärvarvsvägen framför regalskeppet', icon: '📍', latitude: 59.3280, longitude: 18.0914, radius_meters: 50 },
+      { title: 'Nordiska museet', hint: 'Huvudentrén vid Djurgårdsvägen', icon: '📍', latitude: 59.3290, longitude: 18.0936, radius_meters: 50 },
+      { title: 'Skansen', hint: 'Huvudentrén vid Djurgårdsslätten', icon: '📍', latitude: 59.3250, longitude: 18.1008, radius_meters: 50 },
+      { title: 'Gröna Lund', hint: 'Huvudentrén vid Allmänna Gränd', icon: '📍', latitude: 59.3234, longitude: 18.0964, radius_meters: 50 },
+
+      // --- Vasastan ---
+      { title: 'Stadsbiblioteket', hint: 'Gunnar Asplunds rotunda vid Sveavägen', icon: '📍', latitude: 59.3434, longitude: 18.0548, radius_meters: 50 },
+      { title: 'Odenplan', hint: 'Trappan framför Gustaf Vasa kyrka', icon: '📍', latitude: 59.3429, longitude: 18.0498, radius_meters: 50 },
+      { title: 'Observatorielunden', hint: 'Gamla Observatoriet uppe på kullen', icon: '📍', latitude: 59.3418, longitude: 18.0560, radius_meters: 50 },
+      { title: 'Vasaparken', hint: 'Mitt i parken vid dammen och kaféet', icon: '📍', latitude: 59.3400, longitude: 18.0435, radius_meters: 50 },
+
+      // --- Södermalm (Stora landmärken) ---
+      { title: 'Katarinahissen', hint: 'Katarinahissen och utsiktsbryggan vid Slussen', icon: '📍', latitude: 59.3197, longitude: 18.0722, radius_meters: 50 },
+      { title: 'Monteliusvägen', hint: 'Utsiktsbryggan vid Ivar Los park', icon: '📍', latitude: 59.3204, longitude: 18.0592, radius_meters: 50 },
+      { title: 'Skinnarviksberget', hint: 'Högsta utsiktspunkten över Riddarfjärden', icon: '📍', latitude: 59.3195, longitude: 18.0515, radius_meters: 50 },
+      { title: 'Fjällgatan', hint: 'Utsiktsterrassen över Saltsjön och Djurgården', icon: '📍', latitude: 59.3172, longitude: 18.0865, radius_meters: 50 },
+      { title: 'Medborgarplatsen', hint: 'Mitt på torget framför trappan och Söderhallarna', icon: '📍', latitude: 59.3148, longitude: 18.0718, radius_meters: 50 },
+      { title: 'Mosebacke torg', hint: 'Framför Södra Teatern och fontänen', icon: '📍', latitude: 59.3180, longitude: 18.0740, radius_meters: 50 },
+      { title: 'Mariatorget', hint: 'Fontänen Tors fiske mitt i parken', icon: '📍', latitude: 59.3175, longitude: 18.0628, radius_meters: 50 },
+      { title: 'Nytorget', hint: 'Parken och hjärtat av SoFo', icon: '📍', latitude: 59.3126, longitude: 18.0838, radius_meters: 50 },
+      { title: 'Sofia kyrka', hint: 'Kyrkan uppe på Vitabergsparkens topp', icon: '📍', latitude: 59.3120, longitude: 18.0886, radius_meters: 50 },
+      { title: 'Fåfängan', hint: 'Utsiktsberget och klocktornet i öster', icon: '📍', latitude: 59.3150, longitude: 18.1008, radius_meters: 50 },
+      { title: 'Münchenbryggeriet', hint: 'Tegelpalatset vid Söder Mälarstrand 29', icon: '📍', latitude: 59.3207, longitude: 18.0539, radius_meters: 50 },
+      { title: 'Bofills båge', hint: 'Halvcirkeln i Fatbursparken vid Södra Station', icon: '📍', latitude: 59.3142, longitude: 18.0678, radius_meters: 50 },
+    ],
+  },
+  // =========================================================================
+  // 1. PLATSER & KROGAR: SÖDERMALM (Stockholm)
   // =========================================================================
   {
     id: 'sodermalm',
