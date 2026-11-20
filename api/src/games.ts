@@ -24,8 +24,8 @@ function parseId(value: unknown): number | null {
 gamesRouter.post('/', async (req, res) => {
   const hostId = parseId(req.body.host_id);
   const title = String(req.body.title || 'Fotojakt').trim();
-  const gridSize = ['3x3', '3x4', '3x5', '3x7'].includes(req.body.grid_size) ? req.body.grid_size : '3x3';
-  const rows = gridSize === '3x7' ? 7 : (gridSize === '3x5' ? 5 : (gridSize === '3x4' ? 4 : 3));
+  const gridSize = ['3x3', '3x4', '3x5', '3x7', '3x10'].includes(req.body.grid_size) ? req.body.grid_size : '3x3';
+  const rows = gridSize === '3x10' ? 10 : (gridSize === '3x7' ? 7 : (gridSize === '3x5' ? 5 : (gridSize === '3x4' ? 4 : 3)));
   const cols = 3;
   const totalTiles = rows * cols;
   const durationMinutes = Number(req.body.duration_minutes) || 30;
@@ -37,9 +37,11 @@ gamesRouter.post('/', async (req, res) => {
     ? req.body.participant_ids.map(parseId).filter((id): id is number => id !== null && id !== hostId)
     : [];
 
-  const rawItems: any[] = Array.isArray(req.body.items) && req.body.items.length === totalTiles
-    ? req.body.items
-    : Array.from({ length: totalTiles }, (_, i) => ({ label: `Mål ${i + 1}`, emoji: '🎯', hint: '' }));
+  const rawItems: any[] = Array.isArray(req.body.items) && req.body.items.length >= totalTiles
+    ? req.body.items.slice(0, totalTiles)
+    : (Array.isArray(req.body.items) && req.body.items.length > 0
+        ? [...req.body.items, ...Array.from({ length: Math.max(0, totalTiles - req.body.items.length) }, (_, i) => ({ label: `Mål ${req.body.items.length + i + 1}`, emoji: '🎯', hint: '' }))]
+        : Array.from({ length: totalTiles }, (_, i) => ({ label: `Mål ${i + 1}`, emoji: '🎯', hint: '' })));
 
   if (!hostId) {
     return res.status(400).json({ error: 'host_id is required' });

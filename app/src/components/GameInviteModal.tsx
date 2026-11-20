@@ -10,6 +10,13 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Game } from '../api';
 
+function formatDuration(mins: number): string {
+  if (mins >= 10080) return `${Math.round(mins / 10080)} vecka`;
+  if (mins >= 1440) return `${Math.round(mins / 1440)} ${Math.round(mins / 1440) === 1 ? 'dygn' : 'dagar'}`;
+  if (mins >= 60) return `${Math.round(mins / 60)} timmar`;
+  return `${mins} minuter`;
+}
+
 interface GameInviteModalProps {
   game: Game | null;
   loading?: boolean;
@@ -63,7 +70,7 @@ export default function GameInviteModal({
 
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Tidsgräns:</Text>
-              <Text style={styles.detailValue}>{game.duration_minutes} minuter</Text>
+              <Text style={styles.detailValue}>{formatDuration(game.duration_minutes)}</Text>
             </View>
 
             {isTeamGame && (

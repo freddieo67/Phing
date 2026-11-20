@@ -32,10 +32,11 @@ interface GameLobbyModalProps {
 const GRID_OPTIONS: { id: GridSize; label: string; rows: number; total: number; desc: string }[] = [
   { id: '3x3', label: '3 × 3', rows: 3, total: 9, desc: 'Snabbmatch (9 rutor)' },
   { id: '3x5', label: '3 × 5', rows: 5, total: 15, desc: 'Mellanmatch (15 rutor)' },
-  { id: '3x7', label: '3 × 7', rows: 7, total: 21, desc: 'Stortema / Fåglar (21 rutor)' },
+  { id: '3x7', label: '3 × 7', rows: 7, total: 21, desc: 'Stortema (21 rutor)' },
+  { id: '3x10', label: '3 × 10', rows: 10, total: 30, desc: 'Maraton (30 rutor)' },
 ];
 
-const DURATION_OPTIONS = [30, 60, 180, 360, 1440];
+const DURATION_OPTIONS = [30, 60, 180, 360, 1440, 4320, 10080];
 
 export default function GameLobbyModal({
   visible,
@@ -292,7 +293,14 @@ export default function GameLobbyModal({
           <View style={styles.durationsRow}>
             {DURATION_OPTIONS.map(dur => {
               const isSelected = selectedDuration === dur;
-              const durText = dur >= 1440 ? `${dur / 1440} dygn` : dur >= 60 ? `${dur / 60} tim` : `${dur} min`;
+              const durText =
+                dur >= 10080
+                  ? `${Math.round(dur / 10080)} vecka`
+                  : dur >= 1440
+                  ? `${Math.round(dur / 1440)} ${Math.round(dur / 1440) === 1 ? 'dygn' : 'dagar'}`
+                  : dur >= 60
+                  ? `${Math.round(dur / 60)} tim`
+                  : `${dur} min`;
               return (
                 <TouchableOpacity
                   key={dur}
@@ -701,16 +709,18 @@ const styles = StyleSheet.create({
   },
   durationsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   durationChip: {
-    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#D1D5DB',
     borderRadius: 8,
-    paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   durationChipSelected: {
     backgroundColor: '#0F4C5C',
