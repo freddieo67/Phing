@@ -18,6 +18,7 @@ import GameLobbyModal from './src/components/GameLobbyModal';
 import GameReviewModal from './src/components/GameReviewModal';
 import IconPickerModal from './src/components/IconPickerModal';
 import GameInviteModal from './src/components/GameInviteModal';
+import GameSwitcherModal from './src/components/GameSwitcherModal';
 import { api, Inbox, IncomingPosition, IncomingRequest, User, ActiveShare, Game, GameItem, GamePhing, GameTeam, GameParticipant } from './src/api';
 import { getQueuedPhings, enqueuePhing, flushOfflineQueue, QueuedPhing } from './src/offlineQueue';
 import { ApiError } from './src/config';
@@ -39,6 +40,16 @@ function minutesLeft(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 60_000));
 }
 
+function formatGameTimeLeft(expiresAt: string): string {
+  const diffMs = new Date(expiresAt).getTime() - Date.now();
+  if (diffMs <= 0) return 'Avslutas strax';
+  const mins = Math.ceil(diffMs / 60_000);
+  if (mins >= 10080) return `${Math.round(mins / 10080)} vecka kvar`;
+  if (mins >= 1440) return `${Math.round(mins / 1440)} ${Math.round(mins / 1440) === 1 ? 'dag' : 'dagar'} kvar`;
+  if (mins >= 60) return `${Math.round(mins / 60)} tim kvar`;
+  return `${mins} min kvar`;
+}
+
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -51,6 +62,9 @@ export default function App() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMode, setModalMode] = useState<'send' | 'request' | 'signal' | 'ping' | 'flash' | 'game' | null>(null);
   const [activeGame, setActiveGame] = useState<Game | null>(null);
+  const [userGames, setUserGames] = useState<Game[]>([]);
+  const [gameSwitcherVisible, setGameSwitcherVisible] = useState(false);
+  const selectedGameIdRef = useRef<number | null>(null);
   const [gameTeams, setGameTeams] = useState<GameTeam[]>([]);
   const [gameParticipants, setGameParticipants] = useState<GameParticipant[]>([]);
   const [gameItems, setGameItems] = useState<GameItem[]>([]);
@@ -120,21 +134,42 @@ export default function App() {
   );
   const myTeamColor = myParticipant?.team_color || myTeam?.color || (activeGame ? '#10B981' : undefined);
 
-  // Live-radar under aktivt spel: synka kontinuerligt egen position till spelet
+  // Byt vilket spel som är aktivt på kartan och brickan
+  const switchGame = useCallback(async (gameId: number) => {
+    selectedGameIdRef.current = gameId;
+    const target = userGames.find(g => g.id === gameId);
+    if (target) {
+      setActiveGame(target);
+      try {
+        const details = await api.getGameDetails(gameId);
+        setActiveGame(details.game);
+        setGameTeams(details.teams || []);
+        setGameParticipants(details.participants || []);
+        setGameItems(details.items);
+        setGamePhings(details.phings);
+      } catch (_) {}
+    }
+  }, [userGames]);
+
+  // Live-radar under aktivt spel: synka kontinuerligt egen position till alla aktiva spel
   useEffect(() => {
-    if (!user || !activeGame || activeGame.status !== 'active' || !location) return;
+    if (!user || userGames.length === 0 || !location) return;
 
     let active = true;
     const sendGamePos = async () => {
       try {
         if (!active) return;
-        await api.updateGameLocation(activeGame.id, {
-          user_id: user.id,
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy_meters: location.coords.accuracy ?? undefined,
-          icon: myMapIcon,
-        });
+        for (const g of userGames) {
+          if (g.status === 'active') {
+            await api.updateGameLocation(g.id, {
+              user_id: user.id,
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+              accuracy_meters: location.coords.accuracy ?? undefined,
+              icon: myMapIcon,
+            }).catch(() => {});
+          }
+        }
       } catch (_) {}
     };
 
@@ -144,7 +179,7 @@ export default function App() {
       active = false;
       clearInterval(interval);
     };
-  }, [user, activeGame?.id, activeGame?.status, location?.coords.latitude, location?.coords.longitude, myMapIcon]);
+  }, [user, userGames, location?.coords.latitude, location?.coords.longitude, myMapIcon]);
 
   // Ladda köade phings för det aktiva spelet
   useEffect(() => {
@@ -273,9 +308,16 @@ export default function App() {
           onPress: async () => {
             try {
               await api.cancelGame(activeGame.id, user.id);
-              setActiveGame(null);
-              setBingoGridVisible(false);
-              setGameReviewVisible(false);
+              const remaining = userGames.filter(g => g.id !== activeGame.id);
+              setUserGames(remaining);
+              if (remaining.length > 0) {
+                switchGame(remaining[0].id);
+              } else {
+                selectedGameIdRef.current = null;
+                setActiveGame(null);
+                setBingoGridVisible(false);
+                setGameReviewVisible(false);
+              }
               if (refreshRef.current) refreshRef.current();
             } catch (e) {
               Alert.alert(i18n.t('error'), 'Kunde inte avbryta tävlingen.');
@@ -284,7 +326,7 @@ export default function App() {
         },
       ]
     );
-  }, [activeGame, user]);
+  }, [activeGame, user, userGames, switchGame]);
 
   const handleAcceptGameInvite = useCallback(async (game: Game) => {
     if (!user) return;
@@ -292,8 +334,10 @@ export default function App() {
     try {
       await api.respondToGame(game.id, user.id, true);
       setPendingGameInvite(null);
+      selectedGameIdRef.current = game.id;
       const details = await api.getGameDetails(game.id);
       setActiveGame(details.game);
+      setUserGames(prev => [details.game, ...prev.filter(g => g.id !== game.id)]);
       setGameTeams(details.teams || []);
       setGameParticipants(details.participants || []);
       setGameItems(details.items);
@@ -656,12 +700,18 @@ export default function App() {
           setPendingGameInvite(null);
         }
 
-        // Aktiv match sätts BARA om användaren själv är värd eller har accepterat inbjudan!
-        const current = games.find(
+        // Alla aktiva matcher användaren är med i
+        const activeList = games.filter(
           g => (g.status === 'active' || g.status === 'lobby') &&
                (g.participant_status === 'accepted' || g.host_id === user.id)
         );
+        setUserGames(activeList);
+
+        const currentId = selectedGameIdRef.current;
+        const current = (currentId ? activeList.find(g => g.id === currentId) : null) || activeList[0];
+
         if (current) {
+          selectedGameIdRef.current = current.id;
           const details = await api.getGameDetails(current.id);
           if (!active) return;
           setActiveGame(details.game);
@@ -670,7 +720,12 @@ export default function App() {
           setGameItems(details.items);
           setGamePhings(details.phings);
         } else if (activeGame && activeGame.status !== 'finished') {
+          selectedGameIdRef.current = null;
           setActiveGame(null);
+          setGameTeams([]);
+          setGameParticipants([]);
+          setGameItems([]);
+          setGamePhings([]);
         }
       } catch (_) {
         // Tyst vid lokalt nätverksfel
@@ -1373,10 +1428,19 @@ export default function App() {
         {/* Aktivt Spel Banner i toppen */}
         {activeGame && (
           <View style={styles.activeGameBanner}>
-            <TouchableOpacity style={styles.activeGameInfo} onPress={() => setBingoGridVisible(true)}>
-              <Text style={styles.activeGameTitle} numberOfLines={1}>{activeGame.title}</Text>
+            <TouchableOpacity style={styles.activeGameInfo} onPress={() => setGameSwitcherVisible(true)}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.activeGameTitle} numberOfLines={1}>{activeGame.title}</Text>
+                {userGames.length > 1 && (
+                  <View style={styles.gameSwitcherPill}>
+                    <Text style={styles.gameSwitcherPillText}>
+                      {userGames.findIndex(g => g.id === activeGame.id) + 1}/{userGames.length} ▼
+                    </Text>
+                  </View>
+                )}
+              </View>
               <Text style={styles.activeGameSubtitle}>
-                ⏱️ {minutesLeft(activeGame.expires_at)} min kvar · {activeGame.grid_size}
+                ⏱️ {formatGameTimeLeft(activeGame.expires_at)} · {activeGame.grid_size}
               </Text>
             </TouchableOpacity>
             <View style={styles.activeGameActions}>
@@ -1549,6 +1613,17 @@ export default function App() {
                 <FontAwesome6 name="images" size={16} color="#0F4C5C" />
                 <Text style={styles.gameReviewBtnText}>
                   Foton ({gamePhings.length})
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.gameSwitcherBtn}
+                onPress={() => setGameSwitcherVisible(true)}
+                activeOpacity={0.85}
+              >
+                <FontAwesome6 name="layer-group" size={15} color="#0F4C5C" />
+                <Text style={styles.gameSwitcherBtnText}>
+                  {userGames.length > 1 ? `${userGames.length} spel` : 'Spel'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1790,7 +1865,9 @@ export default function App() {
         onOpenContacts={() => openModal('game')}
         onRemoveContact={(id) => setGameInvitedContacts(prev => prev.filter(c => c.userId !== id))}
         onGameCreated={(game) => {
+          selectedGameIdRef.current = game.id;
           setActiveGame(game);
+          setUserGames(prev => [game, ...prev.filter(g => g.id !== game.id)]);
           setGameLobbyVisible(false);
           setBingoGridVisible(true);
           if (refreshRef.current) refreshRef.current();
@@ -1836,6 +1913,16 @@ export default function App() {
         phings={gamePhings}
         currentUserId={user?.id || 1}
         onClose={() => setGameReviewVisible(false)}
+      />
+
+      <GameSwitcherModal
+        visible={gameSwitcherVisible}
+        games={userGames}
+        activeGameId={activeGame?.id ?? null}
+        currentUserId={user?.id || 1}
+        onSelectGame={switchGame}
+        onCreateNewGame={() => setGameLobbyVisible(true)}
+        onClose={() => setGameSwitcherVisible(false)}
       />
 
       <StatusBar style="auto" />
@@ -2059,7 +2146,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   gameGridBtn: {
-    flex: 2,
+    flex: 1,
     backgroundColor: '#10B981',
     height: 52,
     borderRadius: 26,
@@ -2075,11 +2162,10 @@ const styles = StyleSheet.create({
   },
   gameGridBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   gameReviewBtn: {
-    flex: 1,
     backgroundColor: '#FFFFFF',
     height: 52,
     borderRadius: 26,
@@ -2088,7 +2174,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    paddingHorizontal: 12,
+    gap: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -2097,7 +2184,40 @@ const styles = StyleSheet.create({
   },
   gameReviewBtnText: {
     color: '#0F4C5C',
-    fontSize: 13.5,
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  gameSwitcherBtn: {
+    backgroundColor: '#FFFFFF',
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderColor: '#0F4C5C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+    gap: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  gameSwitcherBtnText: {
+    color: '#0F4C5C',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  gameSwitcherPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+  },
+  gameSwitcherPillText: {
+    color: '#FFFFFF',
+    fontSize: 10.5,
     fontWeight: '700',
   },
   activeGameBanner: {
