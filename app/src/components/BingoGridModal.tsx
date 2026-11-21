@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   StyleSheet,
   Text,
@@ -61,6 +61,7 @@ export default function BingoGridModal({
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
   const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string; owner?: string } | null>(null);
+  const [sortByAlpha, setSortByAlpha] = useState(false);
   const lastLaunchRef = useRef(0);
 
   if (!game) return null;
@@ -70,6 +71,19 @@ export default function BingoGridModal({
   const totalTiles = (game.rows || 3) * (game.cols || 3);
   const isBlockMode = game.game_mode === 'block';
   const isTeamGame = Boolean(game.is_team_game);
+
+  // Sortera rutor: antingen standard bricknummer eller A–Ö alfabetiskt
+  const tileIndices = useMemo(() => {
+    const indices = Array.from({ length: totalTiles }, (_, i) => i);
+    if (!sortByAlpha) return indices;
+    return indices.slice().sort((a, b) => {
+      const itemA = items.find(it => it.tile_index === a);
+      const itemB = items.find(it => it.tile_index === b);
+      const labelA = itemA?.label || `Mål ${a + 1}`;
+      const labelB = itemB?.label || `Mål ${b + 1}`;
+      return labelA.localeCompare(labelB, 'sv', { sensitivity: 'base', numeric: true });
+    });
+  }, [totalTiles, sortByAlpha, items]);
 
   // Hitta phings tagna av mitt lag / mig
   const myTeamPhings = allPhings.filter(p =>
@@ -257,6 +271,20 @@ export default function BingoGridModal({
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.sortToggleBtn, sortByAlpha && styles.sortToggleBtnActive]}
+              onPress={() => setSortByAlpha(prev => !prev)}
+              activeOpacity={0.8}
+            >
+              <FontAwesome6
+                name={sortByAlpha ? 'table-cells' : 'arrow-down-a-z'}
+                size={13}
+                color={sortByAlpha ? '#FFFFFF' : '#94A3B8'}
+              />
+              <Text style={[styles.sortToggleBtnText, sortByAlpha && styles.sortToggleBtnTextActive]}>
+                {sortByAlpha ? 'Bricka' : 'A–Ö'}
+              </Text>
+            </TouchableOpacity>
             {onCancelGame && (
               <TouchableOpacity
                 style={styles.headerCancelBtn}
@@ -342,7 +370,7 @@ export default function BingoGridModal({
         {/* Bingobricka (Rutmönster: 3 per rad) */}
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.grid}>
-            {Array.from({ length: totalTiles }).map((_, index) => {
+            {tileIndices.map((index) => {
               const myClaimedPhing = allPhings.find(p =>
                 p.tile_index === index && p.status === 'approved' &&
                 (isTeamGame ? (p.team_id && p.team_id === game.team_id) : p.user_id === currentUserId)
@@ -581,6 +609,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: '#F1F5F9',
+  },
+  sortToggleBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#1E293B',
+    borderWidth: 1,
+    borderColor: '#334155',
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  sortToggleBtnActive: {
+    backgroundColor: '#0F4C5C',
+    borderColor: '#14B8A6',
+  },
+  sortToggleBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  sortToggleBtnTextActive: {
+    color: '#FFFFFF',
   },
   floatingFooter: {
     position: 'absolute',
