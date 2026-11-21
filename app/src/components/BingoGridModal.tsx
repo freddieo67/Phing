@@ -64,13 +64,7 @@ export default function BingoGridModal({
   const [sortByAlpha, setSortByAlpha] = useState(false);
   const lastLaunchRef = useRef(0);
 
-  if (!game) return null;
-
-  const isHost = game.host_id === currentUserId;
-
-  const totalTiles = (game.rows || 3) * (game.cols || 3);
-  const isBlockMode = game.game_mode === 'block';
-  const isTeamGame = Boolean(game.is_team_game);
+  const totalTiles = (game?.rows || 3) * (game?.cols || 3);
 
   // Sortera rutor: antingen standard bricknummer eller A–Ö alfabetiskt
   const tileIndices = useMemo(() => {
@@ -84,6 +78,13 @@ export default function BingoGridModal({
       return labelA.localeCompare(labelB, 'sv', { sensitivity: 'base', numeric: true });
     });
   }, [totalTiles, sortByAlpha, items]);
+
+  if (!game) return null;
+
+  const isHost = game.host_id === currentUserId;
+
+  const isBlockMode = game.game_mode === 'block';
+  const isTeamGame = Boolean(game.is_team_game);
 
   // Hitta phings tagna av mitt lag / mig
   const myTeamPhings = allPhings.filter(p =>
