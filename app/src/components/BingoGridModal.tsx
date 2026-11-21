@@ -34,6 +34,7 @@ interface BingoGridModalProps {
   onSubmitTile: (tileIndex: number, photoThumb: string, photoData: string) => Promise<void>;
   onViewPhing?: (phing: GamePhing) => void;
   onCancelGame?: () => void;
+  onStartGame?: () => void;
 }
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -55,6 +56,7 @@ export default function BingoGridModal({
   onSubmitTile,
   onViewPhing,
   onCancelGame,
+  onStartGame,
 }: BingoGridModalProps) {
   const [activeTileIndex, setActiveTileIndex] = useState<number | null>(null);
   const [capturing, setCapturing] = useState(false);
@@ -118,7 +120,7 @@ export default function BingoGridModal({
   const handleTilePress = async (index: number) => {
     if (game.status !== 'active') {
       if (game.status === 'lobby') {
-        Alert.alert('Spelet har inte startat', 'Tävlingen startar inom kort!');
+        Alert.alert('Utmaningen har inte startat', 'Tävlingen och timern startar så fort din inbjudna motståndare antar utmaningen!');
       } else {
         Alert.alert('Spelet är avslutat', 'Tävlingstiden har gått ut.');
       }
@@ -317,6 +319,25 @@ export default function BingoGridModal({
             <View style={[styles.progressBarFill, { width: `${Math.min(100, (completedCount / totalTiles) * 100)}%` }]} />
           </View>
         </View>
+
+        {/* Lobby Banner om spelet väntar på motståndare */}
+        {game.status === 'lobby' && (
+          <View style={styles.lobbyNoticeBox}>
+            <FontAwesome6 name="hourglass-half" size={15} color="#F59E0B" />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.lobbyNoticeTitle}>Väntar på motståndare</Text>
+              <Text style={styles.lobbyNoticeSub}>
+                Startskottet och timern startar så fort någon antar utmaningen.
+              </Text>
+            </View>
+            {isHost && onStartGame && (
+              <TouchableOpacity style={styles.startNowBtn} onPress={onStartGame} activeOpacity={0.85}>
+                <FontAwesome6 name="play" size={11} color="#FFFFFF" />
+                <Text style={styles.startNowBtnText}>Starta nu</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
         {/* Bingobricka (Rutmönster: 3 per rad) */}
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -637,6 +658,46 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 13,
+  },
+  lobbyNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  lobbyNoticeTitle: {
+    color: '#F59E0B',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  lobbyNoticeSub: {
+    color: '#D1D5DB',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  startNowBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#0F4C5C',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  startNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   progressBarBackground: {
     height: 6,

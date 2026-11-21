@@ -10,7 +10,8 @@ import {
 import { FontAwesome6 } from '@expo/vector-icons';
 import { Game } from '../api';
 
-function formatTimeLeft(expiresAt: string): string {
+function formatTimeLeft(expiresAt?: string | null, status?: string): string {
+  if (status === 'lobby' || !expiresAt) return '⏳ Väntar på svar';
   const diffMs = new Date(expiresAt).getTime() - Date.now();
   if (diffMs <= 0) return 'Avslutad';
   const mins = Math.ceil(diffMs / 60_000);
@@ -99,7 +100,7 @@ export default function GameSwitcherModal({
 
                     <View style={styles.pill}>
                       <FontAwesome6 name="clock" size={11} color="#A1A1AA" />
-                      <Text style={styles.pillText}>{formatTimeLeft(game.expires_at)}</Text>
+                      <Text style={styles.pillText}>{formatTimeLeft(game.expires_at, game.status)}</Text>
                     </View>
 
                     {isBlock && (

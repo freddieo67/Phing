@@ -40,7 +40,8 @@ function minutesLeft(expiresAt: string): number {
   return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 60_000));
 }
 
-function formatGameTimeLeft(expiresAt: string): string {
+function formatGameTimeLeft(expiresAt?: string | null): string {
+  if (!expiresAt) return 'Väntar på start';
   const diffMs = new Date(expiresAt).getTime() - Date.now();
   if (diffMs <= 0) return 'Avslutas strax';
   const mins = Math.ceil(diffMs / 60_000);
@@ -327,6 +328,18 @@ export default function App() {
       ]
     );
   }, [activeGame, user, userGames, switchGame]);
+
+  const handleStartGame = useCallback(async () => {
+    if (!activeGame || !user) return;
+    try {
+      const res = await api.startGame(activeGame.id, user.id);
+      setActiveGame(prev => prev ? { ...prev, status: 'active', starts_at: res.starts_at, expires_at: res.expires_at } : null);
+      setUserGames(prev => prev.map(g => g.id === activeGame.id ? { ...g, status: 'active', starts_at: res.starts_at, expires_at: res.expires_at } : g));
+      if (refreshRef.current) refreshRef.current();
+    } catch (e) {
+      Alert.alert(i18n.t('error'), 'Kunde inte starta tävlingen.');
+    }
+  }, [activeGame, user]);
 
   const handleAcceptGameInvite = useCallback(async (game: Game) => {
     if (!user) return;
@@ -1448,7 +1461,9 @@ export default function App() {
                 )}
               </View>
               <Text style={styles.activeGameSubtitle}>
-                ⏱️ {formatGameTimeLeft(activeGame.expires_at)} · {activeGame.grid_size}
+                {activeGame.status === 'lobby'
+                  ? `⏳ Väntar på motståndare · ${activeGame.grid_size}`
+                  : `⏱️ ${formatGameTimeLeft(activeGame.expires_at)} · ${activeGame.grid_size}`}
               </Text>
             </TouchableOpacity>
             <View style={styles.activeGameActions}>
@@ -1878,6 +1893,12 @@ export default function App() {
           setUserGames(prev => [game, ...prev.filter(g => g.id !== game.id)]);
           setGameLobbyVisible(false);
           setBingoGridVisible(true);
+          if (game.status === 'lobby') {
+            Alert.alert(
+              'Utmaning skickad! 🎮',
+              'Spelet och timern startar automatiskt så fort din inbjudna vän antar utmaningen.'
+            );
+          }
           if (refreshRef.current) refreshRef.current();
         }}
       />
@@ -1912,6 +1933,7 @@ export default function App() {
         onSubmitTile={handleTileSubmit}
         onViewPhing={() => setGameReviewVisible(true)}
         onCancelGame={handleCancelGame}
+        onStartGame={handleStartGame}
       />
 
       <GameReviewModal

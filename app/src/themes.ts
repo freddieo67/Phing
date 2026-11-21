@@ -130,7 +130,7 @@ export const THEME_CATEGORIES: ThemeCategory[] = [
       { title: 'Fåfängan', hint: 'Utsiktsberget och klocktornet i öster', icon: '📍', latitude: 59.3150, longitude: 18.1008, radius_meters: 50 },
       { title: 'Södermalmstorg', hint: 'Ryssgården och Stadsmuseet vid Slussen', icon: '📍', latitude: 59.3198, longitude: 18.0712, radius_meters: 50 },
       { title: 'Zinkensdamms IP', hint: 'Idrottsplatsen vid Ringvägen', icon: '📍', latitude: 59.3156, longitude: 18.0500, radius_meters: 50 },
-      { title: 'Skanstulls torg', hint: 'Götgatan vid Ringen köpcentrum', icon: '📍', latitude: 59.3082, longitude: 18.0758, radius_meters: 50 },
+      { title: 'Skanstull', hint: 'Korsningen Götgatan och Ringvägen vid Ringen', icon: '📍', latitude: 59.3082, longitude: 18.0758, radius_meters: 50 },
       { title: 'Münchenbryggeriet', hint: 'Söder Mälarstrand 29', icon: '📍', latitude: 59.3207, longitude: 18.0539, radius_meters: 50 },
       { title: 'Långholmsbron', hint: 'Bron över till Långholmen vid Bergsunds strand', icon: '📍', latitude: 59.3193, longitude: 18.0281, radius_meters: 50 },
       { title: 'Stig Claessons park', hint: 'Parken vid Åsögatan och Beckbrännarbacken', icon: '📍', latitude: 59.3149, longitude: 18.0883, radius_meters: 50 },

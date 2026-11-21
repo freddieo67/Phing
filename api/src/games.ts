@@ -3,12 +3,14 @@ import { pool } from './db';
 import { getDisplayName, sendPush } from './push';
 import { verifyPhotoWithGemini } from './aiService.js';
 
-// Se till att hint, latitude, longitude och radius_meters finns i game_items
+// Se till att hint, latitude, longitude och radius_meters finns i game_items samt att starts_at och expires_at tillåter NULL i lobby
 pool.query(`
   ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS hint TEXT DEFAULT '';
   ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
   ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
   ALTER TABLE public.game_items ADD COLUMN IF NOT EXISTS radius_meters INTEGER DEFAULT 50;
+  ALTER TABLE public.games ALTER COLUMN starts_at DROP NOT NULL;
+  ALTER TABLE public.games ALTER COLUMN expires_at DROP NOT NULL;
 `).catch(err => {
   console.warn('Migration game_items columns warning:', err.message);
 });
@@ -51,14 +53,18 @@ gamesRouter.post('/', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const status = startsAt <= new Date() ? 'active' : 'lobby';
-    const expiresAt = new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
+    // Om vänner bjudits in ska spelet vänta i 'lobby' tills någon antar utmaningen.
+    // Solo-spel utan inbjudna startar direkt ('active').
+    const hasInvitedPlayers = participantIds.length > 0;
+    const status = hasInvitedPlayers ? 'lobby' : 'active';
+    const actualStartsAt = hasInvitedPlayers ? null : startsAt;
+    const actualExpiresAt = hasInvitedPlayers ? null : new Date(startsAt.getTime() + durationMinutes * 60 * 1000);
 
     const gameRes = await client.query(
       `INSERT INTO public.games (host_id, title, grid_size, rows, cols, duration_minutes, is_team_game, game_mode, status, starts_at, expires_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [hostId, title, gridSize, rows, cols, durationMinutes, isTeamGame, gameMode, status, startsAt, expiresAt]
+      [hostId, title, gridSize, rows, cols, durationMinutes, isTeamGame, gameMode, status, actualStartsAt, actualExpiresAt]
     );
     const game = gameRes.rows[0];
 
@@ -168,7 +174,7 @@ gamesRouter.get('/user/:userId', async (req, res) => {
        JOIN public.game_participants gp ON gp.game_id = g.id AND gp.user_id = $1
        LEFT JOIN public.game_teams gt ON gt.id = gp.team_id
        JOIN public.users u ON u.id = g.host_id
-       WHERE ((g.status IN ('lobby', 'active') AND gp.status != 'declined') OR g.expires_at >= NOW() - INTERVAL '1 day')
+       WHERE ((g.status IN ('lobby', 'active') AND gp.status != 'declined') OR (g.expires_at IS NOT NULL AND g.expires_at >= NOW() - INTERVAL '1 day'))
        ORDER BY g.created_at DESC`,
       [userId]
     );
@@ -202,13 +208,13 @@ gamesRouter.get('/:id', async (req, res) => {
 
     const game = gameRes.rows[0];
 
-    // Uppdatera status om spelet har startat eller gått ut
+    // Uppdatera status om spelet har schemalagd start eller har gått ut
     const now = new Date();
-    if (game.status === 'lobby' && new Date(game.starts_at) <= now) {
+    if (game.status === 'lobby' && game.starts_at && new Date(game.starts_at) <= now) {
       game.status = 'active';
       await pool.query(`UPDATE public.games SET status = 'active' WHERE id = $1`, [gameId]);
     }
-    if (game.status === 'active' && new Date(game.expires_at) <= now) {
+    if (game.status === 'active' && game.expires_at && new Date(game.expires_at) <= now) {
       game.status = 'finished';
       await pool.query(`UPDATE public.games SET status = 'finished' WHERE id = $1`, [gameId]);
     }
@@ -286,7 +292,50 @@ gamesRouter.post('/:id/respond', async (req, res) => {
        WHERE game_id = $2 AND user_id = $3`,
       [status, gameId, userId]
     );
-    res.json({ ok: true, status });
+
+    let gameStatus = 'lobby';
+    let startsAt: Date | null = null;
+    let expiresAt: Date | null = null;
+
+    // Om deltagaren accepterade och spelet står i 'lobby', starta matchen och dra igång timern!
+    if (accept) {
+      const gameRes = await pool.query('SELECT * FROM public.games WHERE id = $1', [gameId]);
+      const game = gameRes.rows[0];
+
+      if (game && game.status === 'lobby') {
+        const now = new Date();
+        const durationMins = Number(game.duration_minutes) || 30;
+        const newExpiresAt = new Date(now.getTime() + durationMins * 60 * 1000);
+
+        await pool.query(
+          `UPDATE public.games
+           SET status = 'active', starts_at = $1, expires_at = $2
+           WHERE id = $3`,
+          [now, newExpiresAt, gameId]
+        );
+
+        gameStatus = 'active';
+        startsAt = now;
+        expiresAt = newExpiresAt;
+
+        // Pushnotis till alla accepterade deltagare (inkl. spelledaren) att matchen nu har startat!
+        const accepterName = await getDisplayName(userId);
+        const playersRes = await pool.query(
+          `SELECT user_id FROM public.game_participants WHERE game_id = $1 AND status = 'accepted'`,
+          [gameId]
+        );
+        for (const row of playersRes.rows) {
+          sendPush(
+            row.user_id,
+            '🚀 Utmaningen är igång!',
+            `${accepterName} antog utmaningen! Startskottet har gått för "${game.title}".`,
+            { type: 'game_started', game_id: gameId }
+          ).catch(() => {});
+        }
+      }
+    }
+
+    res.json({ ok: true, status, game_status: gameStatus, starts_at: startsAt, expires_at: expiresAt });
   } catch (err) {
     console.error('Fel vid svar på inbjudan:', err);
     res.status(500).json({ error: 'Kunde inte svara på inbjudan' });
