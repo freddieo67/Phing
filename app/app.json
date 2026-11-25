@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.xspecio.phing",
-      "buildNumber": "13",
+      "buildNumber": "14",
       "infoPlist": {
         "GADApplicationIdentifier": "ca-app-pub-3940256099942544~1458002511",
         "SKAdNetworkItems": [
@@ -34,7 +34,7 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.xspecio.phing",
-      "versionCode": 13,
+      "versionCode": 14,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
